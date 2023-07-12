@@ -1,0 +1,11 @@
+./configure --prefix=/usr/local/nginx \
+--with-pcre \
+--with-zlib=./my_conf/zlib-1.2.11 \
+--with-stream \
+--with-stream_ssl_module \
+--with-http_ssl_module \
+--with-http_v2_module \
+--with-threads \
+--with-http_sub_module \
+--add-module=./my_conf/headers-more-nginx-module-master \
+--add-module=./my_conf/ngx_http_ssl_client_hello_module
