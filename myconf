@@ -1,4 +1,5 @@
 ./configure --prefix=/usr/local/nginx \
+--with-ld-opt=-lrt \
 --with-pcre \
 --with-zlib=./my_conf/zlib-1.2.11 \
 --with-stream \
@@ -8,4 +9,5 @@
 --with-threads \
 --with-http_sub_module \
 --add-module=./my_conf/headers-more-nginx-module-master \
---add-module=./my_conf/ngx_http_ssl_client_hello_module
+--add-module=./my_conf/ngx_http_ssl_client_hello_module \
+--add-module=./private_conf/ngx_http_security_stats
