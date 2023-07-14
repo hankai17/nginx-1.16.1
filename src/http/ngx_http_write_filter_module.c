@@ -310,6 +310,10 @@ ngx_http_write_filter(ngx_http_request_t *r, ngx_chain_t *in)  // eg: 传进来3
         return NGX_ERROR;
     }
 
+    if (ngx_http_top_write_filter) {
+        ngx_http_top_write_filter(r, sent);
+    }
+
     if (r->limit_rate) {
 
         nsent = c->sent;

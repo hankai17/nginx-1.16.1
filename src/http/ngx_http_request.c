@@ -1488,6 +1488,8 @@ ngx_http_process_request_headers(ngx_event_t *rev) // 2事件可重入 解析hea
 
             r->request_length += r->header_in->pos - r->header_name_start;
 
+            ngx_http_security_stats_bandwidth(r, r->request_length);
+
             r->http_state = NGX_HTTP_PROCESS_REQUEST_STATE;
 
             rc = ngx_http_process_request_header(r);

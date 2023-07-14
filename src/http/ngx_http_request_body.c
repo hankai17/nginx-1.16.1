@@ -105,6 +105,8 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, // 只进一次 // 带�
 
         r->request_length += preread - (r->header_in->last - r->header_in->pos);
 
+        ngx_http_security_stats_bandwidth(r, preread - (r->header_in->last - r->header_in->pos));
+
         if (!r->headers_in.chunked
             && rb->rest > 0
             && rb->rest <= (off_t) (r->header_in->end - r->header_in->last))
@@ -354,6 +356,8 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
 
             rb->buf->last += n;
             r->request_length += n;
+
+            ngx_http_security_stats_bandwidth(r, n);
 
             if (n == rest) {
                 /* pass buffer to request body filter chain */

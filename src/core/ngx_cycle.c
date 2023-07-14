@@ -16,6 +16,7 @@ static ngx_int_t ngx_init_zone_pool(ngx_cycle_t *cycle,
 static ngx_int_t ngx_test_lockfile(u_char *file, ngx_log_t *log);
 static void ngx_clean_old_cycles(ngx_event_t *ev);
 static void ngx_shutdown_timer_handler(ngx_event_t *ev);
+extern ngx_int_t ngx_http_security_stats_init(void);
 
 
 volatile ngx_cycle_t  *ngx_cycle;
@@ -36,7 +37,7 @@ static ngx_connection_t  dumb;
 
 
 ngx_cycle_t *
-ngx_init_cycle(ngx_cycle_t *old_cycle)
+ngx_init_cycle(ngx_cycle_t *old_cycle)              // 起各worker之前 // reload时
 {
     void                *rv;
     char               **senv;
@@ -185,6 +186,10 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
 
     ngx_queue_init(&cycle->reusable_connections_queue);
 
+    if(ngx_http_security_stats_init() == NGX_ERROR){
+        ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "ngx_http_security_stats_init error");
+        return NULL;
+    }
 
     cycle->conf_ctx = ngx_pcalloc(pool, ngx_max_module * sizeof(void *));
     if (cycle->conf_ctx == NULL) {
@@ -272,7 +277,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)
         return NULL;
     }
 
-    if (ngx_conf_parse(&conf, &cycle->conf_file) != NGX_CONF_OK) { // 配置文件之2 解析配置文件
+    if (ngx_conf_parse(&conf, &cycle->conf_file) != NGX_CONF_OK) { // 配置文件之2 解析配置文件  // post是在解析过程中调用的
         environ = senv;
         ngx_destroy_cycle_pools(&conf);
         return NULL;

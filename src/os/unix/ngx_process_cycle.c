@@ -26,6 +26,8 @@ static void ngx_channel_handler(ngx_event_t *ev);
 static void ngx_cache_manager_process_cycle(ngx_cycle_t *cycle, void *data);
 static void ngx_cache_manager_process_handler(ngx_event_t *ev);
 static void ngx_cache_loader_process_handler(ngx_event_t *ev);
+extern void ngx_http_stats_timer(ngx_cycle_t *cycle);
+static void ngx_start_stats_timer_processes(ngx_cycle_t *cycle, ngx_uint_t respawn);
 
 
 ngx_uint_t    ngx_process;
@@ -131,6 +133,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
     ngx_start_worker_processes(cycle, ccf->worker_processes,
                                NGX_PROCESS_RESPAWN);
     ngx_start_cache_manager_processes(cycle, 0);
+    ngx_start_stats_timer_processes(cycle, 0);
 
     ngx_new_binary = 0;
     delay = 0;
@@ -225,6 +228,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
                 ngx_start_worker_processes(cycle, ccf->worker_processes,
                                            NGX_PROCESS_RESPAWN);
                 ngx_start_cache_manager_processes(cycle, 0);
+                ngx_start_stats_timer_processes(cycle, 0);
                 ngx_noaccepting = 0;
 
                 continue;
@@ -244,6 +248,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_start_worker_processes(cycle, ccf->worker_processes,
                                        NGX_PROCESS_JUST_RESPAWN);
             ngx_start_cache_manager_processes(cycle, 1);
+            ngx_start_stats_timer_processes(cycle, 1);
 
             /* allow new processes to start */
             ngx_msleep(100);
@@ -258,6 +263,7 @@ ngx_master_process_cycle(ngx_cycle_t *cycle)
             ngx_start_worker_processes(cycle, ccf->worker_processes,
                                        NGX_PROCESS_RESPAWN);
             ngx_start_cache_manager_processes(cycle, 0);
+            ngx_start_stats_timer_processes(cycle, 0);
             live = 1;
         }
 
@@ -369,6 +375,43 @@ ngx_start_worker_processes(ngx_cycle_t *cycle, ngx_int_t n, ngx_int_t type)
 
 
 static void
+ngx_stats_timer_process_cycle(ngx_cycle_t *cycle, void *data)
+{   
+    /*
+     * Set correct process type since closing listening Unix domain socket
+     * in a master process also removes the Unix domain socket file.
+     */
+    ngx_process = NGX_PROCESS_HELPER;
+    
+    ngx_close_listening_sockets(cycle);
+    
+    ngx_worker_process_init(cycle, -1);
+
+    
+    ngx_setproctitle("stats timer process");
+    
+    ngx_http_stats_timer(cycle);
+    
+    for ( ;; ) {
+        
+        if (ngx_terminate || ngx_quit) {
+            ngx_quit = 0;
+            ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "exiting");
+            exit(0);
+        }
+        
+        if (ngx_reopen) {
+            ngx_reopen = 0;
+            ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "reopening logs");
+            ngx_reopen_files(cycle, -1);
+        }
+        
+        ngx_process_events_and_timers(cycle);
+    }
+}
+
+
+static void
 ngx_start_cache_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
 {
     ngx_uint_t       i, manager, loader;
@@ -421,6 +464,28 @@ ngx_start_cache_manager_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
     ch.fd = ngx_processes[ngx_process_slot].channel[0];
 
     ngx_pass_open_channel(cycle, &ch);
+}
+
+static void
+ngx_start_stats_timer_processes(ngx_cycle_t *cycle, ngx_uint_t respawn)
+{
+    ngx_channel_t    ch;
+
+    ngx_log_error(NGX_LOG_NOTICE, cycle->log, 0, "stats timer processes");
+
+    ngx_spawn_process(cycle, ngx_stats_timer_process_cycle,
+                      NULL, "stats timer process",
+                      respawn ? NGX_PROCESS_JUST_SPAWN : NGX_PROCESS_NORESPAWN);
+
+    ngx_memzero(&ch, sizeof(ngx_channel_t));
+
+    ch.command = NGX_CMD_OPEN_CHANNEL;
+    ch.pid = ngx_processes[ngx_process_slot].pid;
+    ch.slot = ngx_process_slot;
+    ch.fd = ngx_processes[ngx_process_slot].channel[0];
+
+    ngx_pass_open_channel(cycle, &ch);
+
 }
 
 

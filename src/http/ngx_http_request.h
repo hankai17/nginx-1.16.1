@@ -604,6 +604,8 @@ typedef struct {
 extern ngx_http_header_t       ngx_http_headers_in[];
 extern ngx_http_header_out_t   ngx_http_headers_out[];
 
+extern void ngx_http_security_stats_bandwidth(ngx_http_request_t *r, __u64 len);
+
 
 #define ngx_http_set_log_request(log, r)                                      \
     ((ngx_http_log_ctx_t *) log->data)->current_request = r
