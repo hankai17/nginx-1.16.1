@@ -414,14 +414,14 @@ ngx_http_add_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
     key = cmcf->variables_keys->keys.elts;
-    for (i = 0; i < cmcf->variables_keys->keys.nelts; i++) {
+    for (i = 0; i < cmcf->variables_keys->keys.nelts; i++) {                    // 找main config的variables 找到相应的key
         if (name->len != key[i].key.len
             || ngx_strncasecmp(name->data, key[i].key.data, name->len) != 0)
         {
             continue;
         }
 
-        v = key[i].value;
+        v = key[i].value;                                                       // 找到了 name所对应的 key-value结构v
 
         if (!(v->flags & NGX_HTTP_VAR_CHANGEABLE)) {
             ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -433,10 +433,10 @@ ngx_http_add_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
             v->flags &= ~NGX_HTTP_VAR_WEAK;
         }
 
-        return v;
+        return v;                                                               // 返出v
     }
 
-    v = ngx_palloc(cf->pool, sizeof(ngx_http_variable_t));
+    v = ngx_palloc(cf->pool, sizeof(ngx_http_variable_t));                      // 如果没有则 构造一个新的key-value结构v
     if (v == NULL) {
         return NULL;
     }
@@ -455,7 +455,7 @@ ngx_http_add_variable(ngx_conf_t *cf, ngx_str_t *name, ngx_uint_t flags)
     v->flags = flags;
     v->index = 0;
 
-    rc = ngx_hash_add_key(cmcf->variables_keys, &v->name, v, 0);
+    rc = ngx_hash_add_key(cmcf->variables_keys, &v->name, v, 0);                // 插入队列?
 
     if (rc == NGX_ERROR) {
         return NULL;
