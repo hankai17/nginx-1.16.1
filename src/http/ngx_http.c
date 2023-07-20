@@ -1328,7 +1328,7 @@ ngx_http_add_address(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
     addr->nregex = 0;
     addr->regex = NULL;
 #endif
-    addr->default_server = cscf;
+    addr->default_server = cscf;        // 起因
     addr->servers.elts = NULL;
 
     return ngx_http_add_server(cf, cscf, addr);
@@ -1652,14 +1652,15 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
 
     i = 0;
 
-    while (i < last) {
+    while (i < last) {                              // 遍历这个端口下的所有地址  eg: ngx_http_add_listening上面的注释 注意只有三个地址 
+                                                    // 只不过172.16.1.4的地址里面servers个数为2
 
         if (bind_wildcard && !addr[i].opt.bind) {
             i++;
             continue;
         }
 
-        ls = ngx_http_add_listening(cf, &addr[i]); // 设置lfd属性 回调等
+        ls = ngx_http_add_listening(cf, &addr[i]); // 分配ls 设置lfd属性 回调等
         if (ls == NULL) {
             return NGX_ERROR;
         }
@@ -1669,9 +1670,9 @@ ngx_http_init_listening(ngx_conf_t *cf, ngx_http_conf_port_t *port)
             return NGX_ERROR;
         }
 
-        ls->servers = hport;
+        ls->servers = hport;                        // ngx_http_init_connection中的port结构
 
-        hport->naddrs = i + 1;
+        hport->naddrs = i + 1;                      // 如果配置监听同一ip/port 这里hport->naddrs仍为1
 
         switch (ls->sockaddr->sa_family) {
 
@@ -1705,6 +1706,7 @@ port机制:
                               |
                               +---<127.0.0.1 + cscf(本server块的而非全局的)结构>
                               +---<10.53.80.152 + cscf结构>                           
+                              +---<172.16.1.4> <172.16.1.4> 地址相同同样使用一个结构体 addr.servers为两个
 */
 static ngx_listening_t *
 ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr) // 针对某端口的其中一个地址 分配ls结构 包括设置lfd各种属性 ls->handler
@@ -1806,7 +1808,7 @@ ngx_http_add_addrs(ngx_conf_t *cf, ngx_http_port_t *hport,
 
         sin = (struct sockaddr_in *) addr[i].opt.sockaddr;
         addrs[i].addr = sin->sin_addr.s_addr;
-        addrs[i].conf.default_server = addr[i].default_server;
+        addrs[i].conf.default_server = addr[i].default_server;  // 确实取的是default_server
 #if (NGX_HTTP_SSL)
         addrs[i].conf.ssl = addr[i].opt.ssl;
 #endif
