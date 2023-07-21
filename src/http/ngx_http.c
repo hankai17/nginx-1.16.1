@@ -1170,7 +1170,7 @@ ngx_http_add_listen(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
         /* a port is already in the port list */
 
-        return ngx_http_add_addresses(cf, cscf, &port[i], lsopt);
+        return ngx_http_add_addresses(cf, cscf, &port[i], lsopt);   // 端口与已有的port[i]重复 
     }
 
     /* add a port to the port list */
@@ -1189,8 +1189,8 @@ ngx_http_add_listen(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
 
 static ngx_int_t
-ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
-    ngx_http_conf_port_t *port, ngx_http_listen_opt_t *lsopt)
+ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,  // 调用场景是 cscf所在块的端口与已有的port重复了
+    ngx_http_conf_port_t *port/*已有port*/, ngx_http_listen_opt_t *lsopt)
 {
     ngx_uint_t             i, default_server, proxy_protocol;
     ngx_http_conf_addr_t  *addr;
@@ -1206,7 +1206,7 @@ ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
      * may fill some fields in inherited sockaddr struct's
      */
 
-    addr = port->addrs.elts;
+    addr = port->addrs.elts;                                        // 已有port的addr集
 
     for (i = 0; i < port->addrs.nelts; i++) {
 
@@ -1220,12 +1220,13 @@ ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
         /* the address is already in the address list */
 
-        if (ngx_http_add_server(cf, cscf, &addr[i]) != NGX_OK) {
+        if (ngx_http_add_server(cf, cscf, &addr[i]) != NGX_OK) {    // 场景是 cscf所在块的port与已有的port重复 
+                                                                    // 而且 cscf所在块的ip地址与已有的port.addr也重复 // 解决方法就是把当前cscf块挂到已存在的port.addr.servers下
             return NGX_ERROR;
         }
 
         /* preserve default_server bit during listen options overwriting */
-        default_server = addr[i].opt.default_server;
+        default_server = addr[i].opt.default_server;                // 获取已有port的default_server
 
         proxy_protocol = lsopt->proxy_protocol || addr[i].opt.proxy_protocol;
 
@@ -1250,7 +1251,7 @@ ngx_http_add_addresses(ngx_conf_t *cf, ngx_http_core_srv_conf_t *cscf,
 
         /* check the duplicate "default" server for this address:port */
 
-        if (lsopt->default_server) {
+        if (lsopt->default_server) {                                // 如果新块设置了default_server 那么重置老块的default_server为新块的cscf
 
             if (default_server) {
                 ngx_conf_log_error(NGX_LOG_EMERG, cf, 0,
@@ -1706,7 +1707,7 @@ port机制:
                               |
                               +---<127.0.0.1 + cscf(本server块的而非全局的)结构>
                               +---<10.53.80.152 + cscf结构>                           
-                              +---<172.16.1.4> <172.16.1.4> 地址相同同样使用一个结构体 addr.servers为两个
+                              +---<172.16.1.4, cscf> <172.16.1.4, cscf> 地址相同同样使用一个结构体 addr.servers为两个 两个cscf不同
 */
 static ngx_listening_t *
 ngx_http_add_listening(ngx_conf_t *cf, ngx_http_conf_addr_t *addr) // 针对某端口的其中一个地址 分配ls结构 包括设置lfd各种属性 ls->handler
