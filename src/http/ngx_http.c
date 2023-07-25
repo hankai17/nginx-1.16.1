@@ -151,7 +151,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     /* the http main_conf context, it is the same in the all http contexts */
 
     ctx->main_conf = ngx_pcalloc(cf->pool,
-                                 sizeof(void *) * ngx_http_max_module);
+                                 sizeof(void *) * ngx_http_max_module);             // 1提前布局 main级别的 3*50数组
     if (ctx->main_conf == NULL) {
         return NGX_CONF_ERROR;
     }
@@ -185,7 +185,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
      */
 
     for (m = 0; cf->cycle->modules[m]; m++) {
-        if (cf->cycle->modules[m]->type != NGX_HTTP_MODULE) {
+        if (cf->cycle->modules[m]->type != NGX_HTTP_MODULE) {                       // 2各module分配conf 存放到布局中
             continue;
         }
 
@@ -225,7 +225,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         module = cf->cycle->modules[m]->ctx;
 
         if (module->preconfiguration) {
-            if (module->preconfiguration(cf) != NGX_OK) {
+            if (module->preconfiguration(cf) != NGX_OK) {                           // 3pre
                 return NGX_CONF_ERROR;
             }
         }
@@ -235,9 +235,9 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
     cf->module_type = NGX_HTTP_MODULE;
     cf->cmd_type = NGX_HTTP_MAIN_CONF;
-    rv = ngx_conf_parse(cf, NULL);
+    rv = ngx_conf_parse(cf, NULL);                                                  // 继续解析
 
-    if (rv != NGX_CONF_OK) {
+    if (rv != NGX_CONF_OK) {                                                        // 解析完毕
         goto failed;
     }
 
@@ -260,13 +260,13 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         /* init http{} main_conf's */
 
         if (module->init_main_conf) {
-            rv = module->init_main_conf(cf, ctx->main_conf[mi]);
+            rv = module->init_main_conf(cf, ctx->main_conf[mi]);                    // 1调用各module的init_main_conf
             if (rv != NGX_CONF_OK) {
                 goto failed;
             }
         }
 
-        rv = ngx_http_merge_servers(cf, cmcf, module, mi);
+        rv = ngx_http_merge_servers(cf, cmcf, module, mi);                          // 2开始merge
         if (rv != NGX_CONF_OK) {
             goto failed;
         }
@@ -306,7 +306,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
         module = cf->cycle->modules[m]->ctx;
 
         if (module->postconfiguration) {
-            if (module->postconfiguration(cf) != NGX_OK) {
+            if (module->postconfiguration(cf) != NGX_OK) {                          // 3post 注册hook
                 return NGX_CONF_ERROR;
             }
         }

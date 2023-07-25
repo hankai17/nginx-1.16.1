@@ -2711,7 +2711,7 @@ ngx_http_get_forwarded_addr_internal(ngx_http_request_t *r, ngx_addr_t *addr,
 
 
 static char *
-ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)
+ngx_http_core_server(ngx_conf_t *cf, ngx_command_t *cmd, void *dummy)           // 碰到server块时 构造2*50 数组
 {
     char                        *rv;
     void                        *mconf;
