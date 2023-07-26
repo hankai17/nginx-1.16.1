@@ -9,19 +9,19 @@
 #include <ngx_http.h>
 #include <assert.h>
 
-#ifndef NGX_HTTP_UPSTREAM_PERSISTENT
-//#error need NGX_HTTP_UPSTREAM_PERSISTENT macro enabled
+#ifndef NGX_HTTP_UPSTREAM_long_conn
+//#error need NGX_HTTP_UPSTREAM_long_conn macro enabled
 #endif
 
 
 typedef struct {
     ngx_http_upstream_init_pt          original_init_upstream;
     ngx_http_upstream_init_peer_pt     original_init_peer;
-} ngx_http_upstream_persistent_srv_conf_t;
+} ngx_http_upstream_long_conn_srv_conf_t;
 
 
 typedef struct {
-    ngx_http_upstream_persistent_srv_conf_t  *conf;
+    ngx_http_upstream_long_conn_srv_conf_t  *conf;
 
     ngx_http_upstream_t               *upstream;
     ngx_http_request_t                  *req;
@@ -36,39 +36,38 @@ typedef struct {
     ngx_event_save_peer_session_pt     original_save_session;
 #endif
 
-} ngx_http_upstream_persistent_peer_data_t;
+} ngx_http_upstream_long_conn_peer_data_t;
 
 
-static ngx_int_t ngx_http_upstream_init_persistent_peer(ngx_http_request_t *r,
+static ngx_int_t ngx_http_upstream_init_long_conn_peer(ngx_http_request_t *r,
     ngx_http_upstream_srv_conf_t *us);
-static ngx_int_t ngx_http_upstream_get_persistent_peer(ngx_peer_connection_t *pc,
+static ngx_int_t ngx_http_upstream_get_long_conn_peer(ngx_peer_connection_t *pc,
     void *data);
-static void ngx_http_upstream_free_persistent_peer(ngx_peer_connection_t *pc,
+static void ngx_http_upstream_free_long_conn_peer(ngx_peer_connection_t *pc,
     void *data, ngx_uint_t state);
 
-static void ngx_http_upstream_persistent_dummy_handler(ngx_event_t *ev);
-void ngx_http_upstream_persistent_close_handler(ngx_event_t *ev);
-void ngx_http_upstream_persistent_close_stick_handler(ngx_event_t *ev);
-static void ngx_http_upstream_persistent_close(ngx_connection_t *c);
+static void ngx_http_upstream_long_conn_dummy_handler(ngx_event_t *ev);
+void ngx_http_upstream_long_conn_close_handler(ngx_event_t *ev);
+static void ngx_http_upstream_long_conn_close(ngx_connection_t *c);
 
 
 #if (NGX_HTTP_SSL)
-static ngx_int_t ngx_http_upstream_persistent_set_session(
+static ngx_int_t ngx_http_upstream_long_conn_set_session(
     ngx_peer_connection_t *pc, void *data);
-static void ngx_http_upstream_persistent_save_session(ngx_peer_connection_t *pc,
+static void ngx_http_upstream_long_conn_save_session(ngx_peer_connection_t *pc,
     void *data);
 #endif
 
-static void *ngx_http_upstream_persistent_create_conf(ngx_conf_t *cf);
-static char *ngx_http_upstream_persistent(ngx_conf_t *cf, ngx_command_t *cmd,
+static void *ngx_http_upstream_long_conn_create_conf(ngx_conf_t *cf);
+static char *ngx_http_upstream_long_conn(ngx_conf_t *cf, ngx_command_t *cmd,
     void *conf);
 
 
-static ngx_command_t  ngx_http_upstream_persistent_commands[] = {
+static ngx_command_t  ngx_http_upstream_long_conn_commands[] = {
 
-    { ngx_string("persistent"),
+    { ngx_string("long_conn"),
       NGX_HTTP_UPS_CONF|NGX_CONF_NOARGS,
-      ngx_http_upstream_persistent,
+      ngx_http_upstream_long_conn,
       NGX_HTTP_SRV_CONF_OFFSET,
       0,
       NULL },
@@ -77,14 +76,14 @@ static ngx_command_t  ngx_http_upstream_persistent_commands[] = {
 };
 
 
-static ngx_http_module_t  ngx_http_upstream_persistent_module_ctx = {
+static ngx_http_module_t  ngx_http_upstream_long_conn_module_ctx = {
     NULL,                                  /* preconfiguration */
     NULL,                                  /* postconfiguration */
 
     NULL,                                  /* create main configuration */
     NULL,                                  /* init main configuration */
 
-    ngx_http_upstream_persistent_create_conf, /* create server configuration */
+    ngx_http_upstream_long_conn_create_conf, /* create server configuration */
     NULL,                                  /* merge server configuration */
 
     NULL,                                  /* create location configuration */
@@ -92,10 +91,10 @@ static ngx_http_module_t  ngx_http_upstream_persistent_module_ctx = {
 };
 
 
-ngx_module_t  ngx_http_upstream_persistent_module = {
+ngx_module_t  ngx_http_upstream_long_conn_module = {
     NGX_MODULE_V1,
-    &ngx_http_upstream_persistent_module_ctx, /* module context */
-    ngx_http_upstream_persistent_commands,    /* module directives */
+    &ngx_http_upstream_long_conn_module_ctx, /* module context */
+    ngx_http_upstream_long_conn_commands,    /* module directives */
     NGX_HTTP_MODULE,                       /* module type */
     NULL,                                  /* init master */
     NULL,                                  /* init module */
@@ -109,16 +108,16 @@ ngx_module_t  ngx_http_upstream_persistent_module = {
 
 
 static ngx_int_t
-ngx_http_upstream_init_persistent(ngx_conf_t *cf, // 将在ngx_http_upstream_init_main_conf中调用
+ngx_http_upstream_init_long_conn(ngx_conf_t *cf,
     ngx_http_upstream_srv_conf_t *us)
 {
-    ngx_http_upstream_persistent_srv_conf_t  *pcf;
+    ngx_http_upstream_long_conn_srv_conf_t  *pcf;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, cf->log, 0,
-                   "init persistent");
+                   "init long_conn");
 
     pcf = ngx_http_conf_upstream_srv_conf(us,
-                                          ngx_http_upstream_persistent_module);
+                                          ngx_http_upstream_long_conn_module);
 
     if (pcf->original_init_upstream(cf, us) != NGX_OK) {
         return NGX_ERROR;
@@ -126,26 +125,26 @@ ngx_http_upstream_init_persistent(ngx_conf_t *cf, // 将在ngx_http_upstream_ini
 
     pcf->original_init_peer = us->peer.init;
 
-    us->peer.init = ngx_http_upstream_init_persistent_peer;
+    us->peer.init = ngx_http_upstream_init_long_conn_peer;
 
     return NGX_OK;
 }
 
 
 static ngx_int_t
-ngx_http_upstream_init_persistent_peer(ngx_http_request_t *r,
+ngx_http_upstream_init_long_conn_peer(ngx_http_request_t *r,
     ngx_http_upstream_srv_conf_t *us)
 {
-    ngx_http_upstream_persistent_peer_data_t  *kp;
-    ngx_http_upstream_persistent_srv_conf_t   *pcf;
+    ngx_http_upstream_long_conn_peer_data_t  *kp;
+    ngx_http_upstream_long_conn_srv_conf_t   *pcf;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
-                   "init persistent peer");
+                   "init long_conn peer");
 
     pcf = ngx_http_conf_upstream_srv_conf(us,
-                                          ngx_http_upstream_persistent_module);
+                                          ngx_http_upstream_long_conn_module);
 
-    kp = ngx_palloc(r->pool, sizeof(ngx_http_upstream_persistent_peer_data_t));
+    kp = ngx_palloc(r->pool, sizeof(ngx_http_upstream_long_conn_peer_data_t));
     if (kp == NULL) {
         return NGX_ERROR;
     }
@@ -162,14 +161,14 @@ ngx_http_upstream_init_persistent_peer(ngx_http_request_t *r,
     kp->original_free_peer = r->upstream->peer.free;
 
     r->upstream->peer.data = kp;
-    r->upstream->peer.get = ngx_http_upstream_get_persistent_peer;
-    r->upstream->peer.free = ngx_http_upstream_free_persistent_peer;
+    r->upstream->peer.get = ngx_http_upstream_get_long_conn_peer;
+    r->upstream->peer.free = ngx_http_upstream_free_long_conn_peer;
 
 #if (NGX_HTTP_SSL)
     kp->original_set_session = r->upstream->peer.set_session;
     kp->original_save_session = r->upstream->peer.save_session;
-    r->upstream->peer.set_session = ngx_http_upstream_persistent_set_session;
-    r->upstream->peer.save_session = ngx_http_upstream_persistent_save_session;
+    r->upstream->peer.set_session = ngx_http_upstream_long_conn_set_session;
+    r->upstream->peer.save_session = ngx_http_upstream_long_conn_save_session;
 #endif
 
     return NGX_OK;
@@ -177,10 +176,10 @@ ngx_http_upstream_init_persistent_peer(ngx_http_request_t *r,
 
 /* when downstream connection closed */
 static void
-ngx_http_upstream_persistent_pool_dclose(void *data)
+ngx_http_upstream_long_conn_pool_dclose(void *data)
 {
     ngx_connection_t *dc, *uc; /* downstream connection */
-    
+
 
     dc = data;
     if (dc->peer_connection) {
@@ -188,16 +187,16 @@ ngx_http_upstream_persistent_pool_dclose(void *data)
         uc = dc->peer_connection;
         dc->peer_connection = NULL;
         /* close upstream connection */
-        ngx_http_upstream_persistent_close(uc);
+        ngx_http_upstream_long_conn_close(uc);
     }
     // else normal case, uconnection has been closed already
 }
 
 /* when upstream connection closed */
 static void
-ngx_http_upstream_persistent_pool_uclose(void *data)
+ngx_http_upstream_long_conn_pool_uclose(void *data)
 {
-    ngx_connection_t *uc; /* downstream connection */
+    ngx_connection_t *uc; /* upstream connection */
 
     uc = data;
     if (uc->peer_connection) {
@@ -207,15 +206,23 @@ ngx_http_upstream_persistent_pool_uclose(void *data)
 }
 
 static ngx_int_t
-ngx_http_upstream_get_persistent_peer(ngx_peer_connection_t *pc, void *data)
+ngx_http_upstream_get_long_conn_peer(ngx_peer_connection_t *pc, void *data)
 {
-    ngx_http_upstream_persistent_peer_data_t  *kp = data;
+    ngx_http_upstream_long_conn_peer_data_t  *kp = data;
 
     ngx_int_t          rc;
     ngx_connection_t  *c, *dc;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-                   "get persistent peer");
+                   "get long_conn peer");
+
+    rc = kp->original_get_peer(pc, kp->data);
+    if (rc != NGX_OK) {
+        return rc;
+    }
+
+    /* set so_keepalive */
+    pc->so_keepalive = 1;
 
     dc = kp->req->connection;
     c = dc->peer_connection;
@@ -239,36 +246,28 @@ ngx_http_upstream_get_persistent_peer(ngx_peer_connection_t *pc, void *data)
             pc->sockaddr = c->sockaddr; // in ngx_sche_module, sockaddr is malloc from r->connection->pool, so reuse it
 
             ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-                    "get persistent connection %p", c);
+                    "get long_conn connection %p", c);
 
-            return NGX_DONE; 
+            return NGX_DONE;
         } else {
 
             ngx_log_error(NGX_LOG_ALERT, pc->log, 0,
-                    "get persistent connection fd is -1");
-            dc->peer_connection = NULL; 
+                    "get long_conn connection fd is -1");
+            dc->peer_connection = NULL;
         }
     }
 
     assert(pc->connection == NULL);
-
-    /* ask balancer */
-
-    rc = kp->original_get_peer(pc, kp->data);
-
-    if (rc != NGX_OK) {
-        return rc;
-    }
 
     return NGX_OK;
 }
 
 
 static void
-ngx_http_upstream_free_persistent_peer(ngx_peer_connection_t *pc, void *data,
+ngx_http_upstream_free_long_conn_peer(ngx_peer_connection_t *pc, void *data,
     ngx_uint_t state)
 {
-    ngx_http_upstream_persistent_peer_data_t  *kp = data;
+    ngx_http_upstream_long_conn_peer_data_t  *kp = data;
 
     ngx_connection_t     *c;
     ngx_connection_t     *dc; // downstream connection
@@ -276,7 +275,7 @@ ngx_http_upstream_free_persistent_peer(ngx_peer_connection_t *pc, void *data,
     ngx_pool_cleanup_t  *ucln, *dcln;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-                   "free persistent peer");
+                   "free long_conn peer");
 
     /* cache valid connections */
 
@@ -302,16 +301,17 @@ ngx_http_upstream_free_persistent_peer(ngx_peer_connection_t *pc, void *data,
         dc->peer_connection = NULL;
         goto invalid;
     }
-	
+
+
     // TODO: change to u->keepalive
     if (!u->keepalive) {
         dc->peer_connection = NULL;
-        /* 
+        /*
          * in this confition, original free will not set pc->connection as NULL
          * so 'ngx_http_upstream_finalize_request fill close this connection
          */
        	ngx_log_debug1(NGX_LOG_DEBUG_HTTP,  pc->log, 0,
-                   "free persistent peer: u->keepalive is 0 , don't saving connection %p", c);
+                   "free long_conn peer: u->keepalive is 0 , don't saving connection %p", c);
         goto invalid;
     }
 
@@ -326,7 +326,7 @@ ngx_http_upstream_free_persistent_peer(ngx_peer_connection_t *pc, void *data,
     }
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
-                   "free persistent peer: saving connection %p", c);
+                   "free long_conn peer: saving connection %p", c);
 
     /* prevent upstream finalize close connection */
     pc->connection = NULL;
@@ -338,13 +338,10 @@ ngx_http_upstream_free_persistent_peer(ngx_peer_connection_t *pc, void *data,
         ngx_del_timer(c->write);
     }
 
-    c->write->handler = ngx_http_upstream_persistent_dummy_handler;
-    c->read->handler = ngx_http_upstream_persistent_close_handler;
-
-    /*
-     *  not set idle as 1, let drain downstream connection
-     */
-    //c->idle = 1;
+    c->write->handler = ngx_http_upstream_long_conn_dummy_handler;
+    c->read->handler = ngx_http_upstream_long_conn_close_handler;
+	
+    c->idle = 1;
     /*
      * downstream connection may be closed. so set log as ngx_cycle log.
      */
@@ -353,9 +350,9 @@ ngx_http_upstream_free_persistent_peer(ngx_peer_connection_t *pc, void *data,
     c->write->log = ngx_cycle->log;
     c->pool->log = ngx_cycle->log;
 
-    /* in ngx_sche_module, sockaddr is malloc from r->connection->pool, 
+    /* in ngx_sche_module, sockaddr is malloc from r->connection->pool,
      * and in ngx original module, sockaddr malloc from cycle->pool, so cache it */
-    c->sockaddr = pc->sockaddr; 
+    c->sockaddr = pc->sockaddr;
 
     /* splice */
     if (dc->peer_connection == NULL) {
@@ -364,19 +361,20 @@ ngx_http_upstream_free_persistent_peer(ngx_peer_connection_t *pc, void *data,
         dcln = ngx_pool_cleanup_add(dc->pool, sizeof(ngx_connection_t));
         if (ucln && dcln) {
 
-            ucln->handler = ngx_http_upstream_persistent_pool_uclose;
+            ucln->handler = ngx_http_upstream_long_conn_pool_uclose;
             ucln->data = c;
 
-            dcln->handler = ngx_http_upstream_persistent_pool_dclose;
+            dcln->handler = ngx_http_upstream_long_conn_pool_dclose;
             dcln->data = dc;
 
             dc->peer_connection = c;
             c->peer_connection = dc;
+
         }
     }
 
     if (c->read->ready) {
-        ngx_http_upstream_persistent_close_stick_handler(c->read);
+        ngx_http_upstream_long_conn_close_handler(c->read);
     }
 
 invalid:
@@ -384,59 +382,20 @@ invalid:
 		/* original_get_peer is called only on the first request, and original_free_peer is called only when original_get_peer is called */
 	    kp->original_free_peer(pc, kp->data, state);
 	}
-	
+
 }
 
 
 static void
-ngx_http_upstream_persistent_dummy_handler(ngx_event_t *ev)
+ngx_http_upstream_long_conn_dummy_handler(ngx_event_t *ev)
 {
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ev->log, 0,
-                   "persistent dummy handler");
+                   "long_conn dummy handler");
 }
 
 
 void
-ngx_http_upstream_persistent_close_stick_handler(ngx_event_t *ev)
-{
-    int                n;
-    char               buf[1];
-    ngx_connection_t  *c;
-
-    ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ev->log, 0,
-                   "persistent close handler");
-
-    c = ev->data;
-
-    if (c->close) {
-        goto close;
-    }
-
-    n = recv(c->fd, buf, 1, MSG_PEEK);
-
-    if (n == -1 && ngx_socket_errno == NGX_EAGAIN) {
-        ev->ready = 0;
-
-        if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
-            goto close;
-        }
-
-        return;
-    }
-
-close:
-
-    if (c->peer_connection) {
-        c->peer_connection->peer_connection = NULL;
-        c->peer_connection = NULL;
-    }
-
-    ngx_http_upstream_persistent_close(c);
-}
-
-
-void
-ngx_http_upstream_persistent_close_handler(ngx_event_t *ev)
+ngx_http_upstream_long_conn_close_handler(ngx_event_t *ev)
 {
 
     int                n;
@@ -445,7 +404,7 @@ ngx_http_upstream_persistent_close_handler(ngx_event_t *ev)
     ngx_connection_t  *dc;
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, ev->log, 0,
-                   "persistent close handler");
+                   "long_conn close handler");
 
     c = ev->data;
 
@@ -466,21 +425,20 @@ ngx_http_upstream_persistent_close_handler(ngx_event_t *ev)
     }
 
 close:
-
     if (c->peer_connection) {
-        // clear downstream connection's persistent connection
+        // clear downstream connection's long_conn connection
         dc = c->peer_connection;
         c->peer_connection->peer_connection = NULL;
         c->peer_connection = NULL;
-        ngx_http_upstream_persistent_close(dc);
-    }
+        ngx_http_upstream_long_conn_close(dc);
+     }
 
-    ngx_http_upstream_persistent_close(c);
+    ngx_http_upstream_long_conn_close(c);
 }
 
 
 void
-ngx_http_upstream_persistent_close(ngx_connection_t *c)
+ngx_http_upstream_long_conn_close(ngx_connection_t *c)
 {
 
 #if (NGX_HTTP_SSL)
@@ -490,7 +448,7 @@ ngx_http_upstream_persistent_close(ngx_connection_t *c)
         c->ssl->no_send_shutdown = 1;
 
         if (ngx_ssl_shutdown(c) == NGX_AGAIN) {
-            c->ssl->handler = ngx_http_upstream_persistent_close;
+            c->ssl->handler = ngx_http_upstream_long_conn_close;
             return;
         }
     }
@@ -499,29 +457,27 @@ ngx_http_upstream_persistent_close(ngx_connection_t *c)
 
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, c->pool->log, 0,
-                   "close persistent connection %p", c);
-    c->destroyed = 1;
-    ngx_pool_t  *pool = c->pool;
+                   "close long_conn connection %p", c);
+    ngx_destroy_pool(c->pool);
     ngx_close_connection(c);
-    ngx_destroy_pool(pool);
 }
 
 
 #if (NGX_HTTP_SSL)
 
 static ngx_int_t
-ngx_http_upstream_persistent_set_session(ngx_peer_connection_t *pc, void *data)
+ngx_http_upstream_long_conn_set_session(ngx_peer_connection_t *pc, void *data)
 {
-    ngx_http_upstream_persistent_peer_data_t  *kp = data;
+    ngx_http_upstream_long_conn_peer_data_t  *kp = data;
 
     return kp->original_set_session(pc, kp->data);
 }
 
 
 static void
-ngx_http_upstream_persistent_save_session(ngx_peer_connection_t *pc, void *data)
+ngx_http_upstream_long_conn_save_session(ngx_peer_connection_t *pc, void *data)
 {
-    ngx_http_upstream_persistent_peer_data_t  *kp = data;
+    ngx_http_upstream_long_conn_peer_data_t  *kp = data;
 
     kp->original_save_session(pc, kp->data);
     return;
@@ -531,12 +487,12 @@ ngx_http_upstream_persistent_save_session(ngx_peer_connection_t *pc, void *data)
 
 
 static void *
-ngx_http_upstream_persistent_create_conf(ngx_conf_t *cf)
+ngx_http_upstream_long_conn_create_conf(ngx_conf_t *cf)
 {
-    ngx_http_upstream_persistent_srv_conf_t  *conf;
+    ngx_http_upstream_long_conn_srv_conf_t  *conf;
 
     conf = ngx_pcalloc(cf->pool,
-                       sizeof(ngx_http_upstream_persistent_srv_conf_t));
+                       sizeof(ngx_http_upstream_long_conn_srv_conf_t));
     if (conf == NULL) {
         return NULL;
     }
@@ -555,10 +511,10 @@ ngx_http_upstream_persistent_create_conf(ngx_conf_t *cf)
 
 
 static char *
-ngx_http_upstream_persistent(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
+ngx_http_upstream_long_conn(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 {
     ngx_http_upstream_srv_conf_t            *uscf;
-    ngx_http_upstream_persistent_srv_conf_t  *pcf = conf;
+    ngx_http_upstream_long_conn_srv_conf_t  *pcf = conf;
 
 
     uscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_upstream_module);
@@ -571,7 +527,7 @@ ngx_http_upstream_persistent(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
                                   ? uscf->peer.init_upstream
                                   : ngx_http_upstream_init_round_robin;
 
-    uscf->peer.init_upstream = ngx_http_upstream_init_persistent; // 将在ngx_http_upstream_init_main_conf中调用
+    uscf->peer.init_upstream = ngx_http_upstream_init_long_conn;
 
     return NGX_CONF_OK;
 }

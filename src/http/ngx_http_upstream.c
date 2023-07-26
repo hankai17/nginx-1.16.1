@@ -4351,8 +4351,11 @@ ngx_http_upstream_finalize_request(ngx_http_request_t *r,
     if (u->peer.free && u->peer.sockaddr) {
         u->peer.free(&u->peer, u->peer.data, 0);
         u->peer.sockaddr = NULL;
-        if (u->peer.connection == NULL) {
-            //rc = NGX_HTTP_BAD_GATEWAY; // 怎么改?
+        if (u->peer.connection == NULL &&
+                r->connection && r->connection->peer_connection == NULL) {
+            //ngx_http_finalize_request(r, rc);
+            //return;
+            r->keepalive = 0;
         }
     }
 

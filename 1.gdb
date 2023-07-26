@@ -17,8 +17,18 @@ set print pretty
 #b ngx_http_add_addresses
 ## debug port at parsing time
 # parse word listen and after parse word listen
-b ngx_http_add_listen 
-b ngx_http_add_server
+#b ngx_http_add_listen 
+#b ngx_http_add_server
 ## debug port at optimize time
-b ngx_http_add_listening
+#b ngx_http_add_listening
 #b ngx_http_add_addrs
+
+#conn
+#b ngx_http_upstream_keepalive_create_conf
+#b ngx_http_upstream_keepalive
+#b ngx_http_upstream_init_main_conf
+
+#b ngx_http_upstream.c:4349
+#b ngx_http_upstream.c:4351
+#b ngx_http_upstream_get_keepalive_peer
+#b ngx_http_upstream_free_persistent_peer
