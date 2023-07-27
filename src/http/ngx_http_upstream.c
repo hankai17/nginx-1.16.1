@@ -1680,7 +1680,7 @@ ngx_http_upstream_ssl_init_connection(ngx_http_request_t *r,
     c->sendfile = 0;
     u->output.sendfile = 0;
 
-    if (u->conf->ssl_server_name || u->conf->ssl_verify) {
+    if (u->conf->ssl_server_name || u->conf->ssl_verify) {      // ssl握手时 是否添加sni
         if (ngx_http_upstream_ssl_name(r, u, c) != NGX_OK) {
             ngx_http_upstream_finalize_request(r, u,
                                                NGX_HTTP_INTERNAL_SERVER_ERROR);

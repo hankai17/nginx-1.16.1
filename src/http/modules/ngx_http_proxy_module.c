@@ -3636,7 +3636,7 @@ ngx_http_proxy_pass(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
     } else if (ngx_strncasecmp(url->data, (u_char *) "https://", 8) == 0) {
 
 #if (NGX_HTTP_SSL)
-        plcf->ssl = 1;
+        plcf->ssl = 1;                                                          // 如果proxy_pass中有https则 置位plcf->ssl
 
         add = 8;
         port = 443;
@@ -4267,7 +4267,7 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
 
     plcf->upstream.ssl->log = cf->log;
 
-    if (ngx_ssl_create(plcf->upstream.ssl, plcf->ssl_protocols, NULL)
+    if (ngx_ssl_create(plcf->upstream.ssl, plcf->ssl_protocols, NULL)       // 在解析配置阶段就 设置后端upstream的ssl ctx
         != NGX_OK)
     {
         return NGX_ERROR;
@@ -4291,7 +4291,7 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
             return NGX_ERROR;
         }
 
-        if (ngx_ssl_certificate(cf, plcf->upstream.ssl, &plcf->ssl_certificate,
+        if (ngx_ssl_certificate(cf, plcf->upstream.ssl, &plcf->ssl_certificate, // nginx作为客户端 这里一般不配置
                                 &plcf->ssl_certificate_key, plcf->ssl_passwords)
             != NGX_OK)
         {
@@ -4299,13 +4299,13 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
         }
     }
 
-    if (ngx_ssl_ciphers(cf, plcf->upstream.ssl, &plcf->ssl_ciphers, 0)
+    if (ngx_ssl_ciphers(cf, plcf->upstream.ssl, &plcf->ssl_ciphers, 0)  // 不配置
         != NGX_OK)
     {
         return NGX_ERROR;
     }
 
-    if (plcf->upstream.ssl_verify) {
+    if (plcf->upstream.ssl_verify) {        // 关闭
         if (plcf->ssl_trusted_certificate.len == 0) {
             ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
                       "no proxy_ssl_trusted_certificate for proxy_ssl_verify");
@@ -4326,7 +4326,7 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
     }
 
     if (ngx_ssl_client_session_cache(cf, plcf->upstream.ssl,
-                                     plcf->upstream.ssl_session_reuse)
+                                     plcf->upstream.ssl_session_reuse)  // 打开
         != NGX_OK)
     {
         return NGX_ERROR;
