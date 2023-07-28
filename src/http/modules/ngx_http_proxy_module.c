@@ -4343,9 +4343,9 @@ ngx_http_proxy_set_vars(ngx_url_t *u, ngx_http_proxy_vars_t *v)
 {
     if (u->family != AF_UNIX) {
 
-        if (u->no_port || u->port == u->default_port) {
+        if (u->no_port || u->port == u->default_port) {     // u->host即使 /melon_80
 
-            v->host_header = u->host;
+            v->host_header = u->host;                       // 赋值给$proxy_host
 
             if (u->default_port == 80) {
                 ngx_str_set(&v->port, "80");

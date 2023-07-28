@@ -1,4 +1,5 @@
 set args -c /usr/local/nginx/conf/nginx.conf
+#set args -c /usr/local/tengine/conf/nginx.conf
 set print pretty
 
 #b ngx_http_security_stats_merge_loc_conf
@@ -32,3 +33,10 @@ set print pretty
 #b ngx_http_upstream.c:4351
 #b ngx_http_upstream_get_keepalive_peer
 #b ngx_http_upstream_free_persistent_peer
+#b ngx_http_ssl_client_hello_handler
+#b ngx_http_parse_request_line
+
+#b ngx_http_proxy_set_vars
+#b ngx_http_proxy_pass
+
+b ngx_http_process_host

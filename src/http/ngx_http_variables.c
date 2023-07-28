@@ -161,7 +161,7 @@ static ngx_int_t ngx_http_variable_time_local(ngx_http_request_t *r,
 
 static ngx_http_variable_t  ngx_http_core_variables[] = {
 
-    { ngx_string("http_host"), NULL, ngx_http_variable_header,
+    { ngx_string("http_host"), NULL, ngx_http_variable_header,      // 请求行中的 Host:
       offsetof(ngx_http_request_t, headers_in.host), 0, 0 },
 
     { ngx_string("http_user_agent"), NULL, ngx_http_variable_header,
@@ -1204,7 +1204,7 @@ ngx_http_variable_host(ngx_http_request_t *r, ngx_http_variable_value_t *v,
 {
     ngx_http_core_srv_conf_t  *cscf;
 
-    if (r->headers_in.server.len) {
+    if (r->headers_in.server.len) {             // 如果r->headers_in中没有server 那么取server_name
         v->len = r->headers_in.server.len;
         v->data = r->headers_in.server.data;
 

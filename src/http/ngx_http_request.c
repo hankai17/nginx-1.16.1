@@ -1139,7 +1139,7 @@ ngx_http_process_request_line(ngx_event_t *rev) // 1事件可重入 解析第一
                     break;
                 }
 
-                r->headers_in.server = host;
+                r->headers_in.server = host;    // $host是从请求行里取的
             }
 
             if (r->http_version < NGX_HTTP_VERSION_10) {
@@ -1468,7 +1468,7 @@ ngx_http_process_request_headers(ngx_event_t *rev) // 2事件可重入 解析hea
             hh = ngx_hash_find(&cmcf->headers_in_hash, h->hash,
                                h->lowcase_key, h->key.len);
 
-            if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {
+            if (hh && hh->handler(r, h, hh->offset) != NGX_OK) {    // 解析出Host 调用ngx_http_process_host 重置给$Host
                 break;
             }
 
