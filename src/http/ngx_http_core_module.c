@@ -959,7 +959,7 @@ ngx_http_core_find_config_phase(ngx_http_request_t *r,
                    (clcf->noname ? "*" : (clcf->exact_match ? "=" : "")),
                    &clcf->name);
 
-    ngx_http_update_location_config(r);
+    ngx_http_update_location_config(r); // 在find_config阶段 设置r->content_handler 为clcf->handler(即设置为proxy_pass回调)
 
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http cl:%O max:%O",
@@ -1210,7 +1210,7 @@ ngx_http_core_content_phase(ngx_http_request_t *r,
 
 
 void
-ngx_http_update_location_config(ngx_http_request_t *r)
+ngx_http_update_location_config(ngx_http_request_t *r)  // 在find_config阶段 设置r->content_handler 为clcf->handler(即设置为proxy_pass回调)
 {
     ngx_http_core_loc_conf_t  *clcf;
 

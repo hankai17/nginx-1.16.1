@@ -39,4 +39,6 @@ set print pretty
 #b ngx_http_proxy_set_vars
 #b ngx_http_proxy_pass
 
-b ngx_http_process_host
+#b ngx_http_process_host
+b ngx_http_update_location_config
+b ngx_http_proxy_handler
