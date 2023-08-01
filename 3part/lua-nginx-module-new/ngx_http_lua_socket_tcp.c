@@ -2054,7 +2054,7 @@ ngx_http_lua_socket_read_line(void *data, ssize_t bytes)
 
 
 static ngx_int_t
-ngx_http_lua_socket_tcp_read(ngx_http_request_t *r,
+ngx_http_lua_socket_tcp_read(ngx_http_request_t *r,             // 调用c->rcv 最终还是系统调用
     ngx_http_lua_socket_tcp_upstream_t *u)
 {
     ngx_int_t                    rc;

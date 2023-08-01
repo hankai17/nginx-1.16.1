@@ -127,7 +127,8 @@ ngx_http_lua_ngx_timer_every(lua_State *L)
 
 
 static int
-ngx_http_lua_ngx_timer_helper(lua_State *L, int every)
+ngx_http_lua_ngx_timer_helper(lua_State *L, int every)                      // timer实现 是先分配一个co 挂到当前ngx进程的定时器上
+                                                                            // 所以虽然log阶段 框架没有提供协程 那么可以通过定时器的方式 把日志外发业务放到定时器(协程)中
 {
     int                      nargs, co_ref;
     u_char                  *p;

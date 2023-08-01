@@ -47,7 +47,7 @@ ngx_http_lua_inject_uthread_api(ngx_log_t *log, lua_State *L)
 
 
 static int
-ngx_http_lua_uthread_spawn(lua_State *L)                            // 起协程 老协程挂到队列上 然后主动yeild到上层调度层调度之
+ngx_http_lua_uthread_spawn(lua_State *L)                                // 起协程 老协程挂到队列上 然后主动yeild到上层调度层调度之
 {
     int                           n;
     ngx_http_request_t           *r;
