@@ -707,7 +707,7 @@ ngx_http_lua_init_globals(lua_State *L, ngx_cycle_t *cycle,
 
 
 static void
-ngx_http_lua_inject_ngx_api(lua_State *L, ngx_http_lua_main_conf_t *lmcf,
+ngx_http_lua_inject_ngx_api(lua_State *L, ngx_http_lua_main_conf_t *lmcf,		// 创建table ngx
     ngx_log_t *log)
 {
     lua_createtable(L, 0 /* narr */, 116 /* nrec */);    /* ngx.* */
@@ -715,26 +715,26 @@ ngx_http_lua_inject_ngx_api(lua_State *L, ngx_http_lua_main_conf_t *lmcf,
     lua_pushcfunction(L, ngx_http_lua_get_raw_phase_context);
     lua_setfield(L, -2, "_phase_ctx");
 
-    ngx_http_lua_inject_arg_api(L);
+    ngx_http_lua_inject_arg_api(L);			// 插入'args' table 到ngx表中
 
-    ngx_http_lua_inject_http_consts(L);
-    ngx_http_lua_inject_core_consts(L);
+    ngx_http_lua_inject_http_consts(L);		// 插入HTTP_xxx 等
+    ngx_http_lua_inject_core_consts(L);		// 插入OK AGAIN DONE DECLINED 
 
-    ngx_http_lua_inject_log_api(L);
-    ngx_http_lua_inject_output_api(L);
-    ngx_http_lua_inject_time_api(L);
-    ngx_http_lua_inject_string_api(L);
-    ngx_http_lua_inject_control_api(log, L);
+    ngx_http_lua_inject_log_api(L);			// 插入'log=func' 'print=func' 到ngx中
+    ngx_http_lua_inject_output_api(L);		// 插入 'send_headers=func' 'print=func' 'say=func' 'flush=func' 'eof=func' 到ngx中
+    ngx_http_lua_inject_time_api(L);        // 插入 'utctime=func' 'get_now_ts=func' 'get_now=func' ... 到ngx表中
+    ngx_http_lua_inject_string_api(L);      // 插入 'escape_uri=func' ... 到ngx表中
+    ngx_http_lua_inject_control_api(log, L);// 插入 'redirect=func' ... 到ngx表中
     ngx_http_lua_inject_subrequest_api(L);
-    ngx_http_lua_inject_sleep_api(L);
-    ngx_http_lua_inject_phase_api(L);
+    ngx_http_lua_inject_sleep_api(L);       // ...
+    ngx_http_lua_inject_phase_api(L);       // ...
 
 #if (NGX_PCRE)
-    ngx_http_lua_inject_regex_api(L);
+    ngx_http_lua_inject_regex_api(L);       // 插入 'find=func' 'match=func' 'gmatch=func' 'sub=func' 'gsub=func' 're=func' 到ngx表中
 #endif
 
-    ngx_http_lua_inject_req_api(log, L);
-    ngx_http_lua_inject_resp_header_api(L);
+    ngx_http_lua_inject_req_api(log, L);    // 插入 ngx.req相关
+    ngx_http_lua_inject_resp_header_api(L); // 插入 'header' 'get_headers' table到ngx表中
     ngx_http_lua_create_headers_metatable(log, L);
     ngx_http_lua_inject_variable_api(L);
     ngx_http_lua_inject_shdict_api(lmcf, L);
@@ -2093,16 +2093,16 @@ ngx_http_lua_inject_req_api(ngx_log_t *log, lua_State *L)
 
     lua_createtable(L, 0 /* narr */, 24 /* nrec */);    /* .req */
 
-    ngx_http_lua_inject_req_header_api(L);
-    ngx_http_lua_inject_req_uri_api(log, L);
-    ngx_http_lua_inject_req_args_api(L);
-    ngx_http_lua_inject_req_body_api(L);
-    ngx_http_lua_inject_req_socket_api(L);
-    ngx_http_lua_inject_req_method_api(L);
-    ngx_http_lua_inject_req_time_api(L);
-    ngx_http_lua_inject_req_misc_api(L);
+    ngx_http_lua_inject_req_header_api(L);    // ngx.req.<http_version|raw_header|clear_header|set_header|get_headers>
+    ngx_http_lua_inject_req_uri_api(log, L);  // ngx.req.set_uri
+    ngx_http_lua_inject_req_args_api(L);      // ngx.req.<set_uri_args|get_uri_args|get_query_args|get_post_args>
+    ngx_http_lua_inject_req_body_api(L);      // ngx.req.<read_body|discard_body|get_body_data|set_body_data|set_body_file|init_body|append_body|finish_body>
+    ngx_http_lua_inject_req_socket_api(L);    // ngx.req.socket
+    ngx_http_lua_inject_req_method_api(L);    // ngx.req.<get_method|set_method>
+    ngx_http_lua_inject_req_time_api(L);      // ngx.req.start_time
+    ngx_http_lua_inject_req_misc_api(L);      // ngx.req.is_internal
 
-    lua_setfield(L, -2, "req");
+    lua_setfield(L, -2, "req");									// req
 }
 
 
@@ -2892,7 +2892,7 @@ ngx_http_lua_traceback(lua_State *L)
 
 
 static void
-ngx_http_lua_inject_arg_api(lua_State *L)
+ngx_http_lua_inject_arg_api(lua_State *L) 		// { arg: {__index=ngx_http_lua_param_get} {__newindex=ngx_http_lua_param_set} }
 {
     lua_pushliteral(L, "arg");
     lua_newtable(L);    /*  .arg table aka {} */
@@ -3709,7 +3709,7 @@ ngx_http_lua_close_fake_connection(ngx_connection_t *c)
 
 
 lua_State *
-ngx_http_lua_init_vm(lua_State *parent_vm, ngx_cycle_t *cycle,
+ngx_http_lua_init_vm(lua_State *parent_vm, ngx_cycle_t *cycle,			// 调用时机是 postconfig
     ngx_pool_t *pool, ngx_http_lua_main_conf_t *lmcf, ngx_log_t *log,
     ngx_pool_cleanup_t **pcln)
 {
@@ -3725,7 +3725,7 @@ ngx_http_lua_init_vm(lua_State *parent_vm, ngx_cycle_t *cycle,
     }
 
     /* create new Lua VM instance */
-    L = ngx_http_lua_new_state(parent_vm, cycle, lmcf, log);
+    L = ngx_http_lua_new_state(parent_vm, cycle, lmcf, log);			// 每个进程有一个 主协程
     if (L == NULL) {
         return NULL;
     }
