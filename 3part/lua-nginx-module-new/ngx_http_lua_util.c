@@ -3709,7 +3709,7 @@ ngx_http_lua_close_fake_connection(ngx_connection_t *c)
 
 
 lua_State *
-ngx_http_lua_init_vm(lua_State *parent_vm, ngx_cycle_t *cycle,			// 调用时机是 postconfig
+ngx_http_lua_init_vm(lua_State *parent_vm, ngx_cycle_t *cycle,			// 调用时机是 配置加载时 postconfig // 每个进程有一个 主协程
     ngx_pool_t *pool, ngx_http_lua_main_conf_t *lmcf, ngx_log_t *log,
     ngx_pool_cleanup_t **pcln)
 {

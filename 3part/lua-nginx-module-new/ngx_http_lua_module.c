@@ -663,7 +663,7 @@ ngx_http_lua_init(ngx_conf_t *cf)
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
-    if (lmcf->requires_rewrite) {
+    if (lmcf->requires_rewrite) {												// 如果配置了rewrite_by_lua_block{} (ngx_http_lua_rewrite_by_lua) 那么就在RW阶段注册handler
         h = ngx_array_push(&cmcf->phases[NGX_HTTP_REWRITE_PHASE].handlers);
         if (h == NULL) {
             return NGX_ERROR;
@@ -672,7 +672,8 @@ ngx_http_lua_init(ngx_conf_t *cf)
         *h = ngx_http_lua_rewrite_handler;
     }
 
-    if (lmcf->requires_access) {
+    if (lmcf->requires_access) {												// 如果配置了access_by_lua_block{} ...
+																				// ----> 也就是说这两个 block{} 也是依赖ngx的hook框架
         h = ngx_array_push(&cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers);
         if (h == NULL) {
             return NGX_ERROR;

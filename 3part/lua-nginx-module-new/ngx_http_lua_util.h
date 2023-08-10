@@ -316,7 +316,7 @@ ngx_http_lua_create_ctx(ngx_http_request_t *r)
 
 
 static ngx_inline lua_State *
-ngx_http_lua_get_lua_vm(ngx_http_request_t *r, ngx_http_lua_ctx_t *ctx)     // 分配ctx 返回主协程L
+ngx_http_lua_get_lua_vm(ngx_http_request_t *r, ngx_http_lua_ctx_t *ctx)     // 拿r的ctx中的协程 如果没有则返回主协程
 {
     ngx_http_lua_main_conf_t    *lmcf;
 

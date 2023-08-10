@@ -341,7 +341,7 @@ ngx_http_lua_set_by_lua_file(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
 ngx_int_t
-ngx_http_lua_filter_set_by_lua_inline(ngx_http_request_t *r, ngx_str_t *val,
+ngx_http_lua_filter_set_by_lua_inline(ngx_http_request_t *r, ngx_str_t *val, 	// 在RW阶段 http/modules/rewrite 模块中调用
     ngx_http_variable_value_t *v, void *data)
 {
     lua_State                   *L;
