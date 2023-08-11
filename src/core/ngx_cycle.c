@@ -434,7 +434,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)              // 起各worker之前 // rel
         opart = &old_cycle->shared_memory.part;
         oshm_zone = opart->elts;
 
-        for (n = 0; /* void */ ; n++) {
+        for (n = 0; /* void */ ; n++) {             // 遍历老的共享内存块
 
             if (n >= opart->nelts) {
                 if (opart->next == NULL) {
@@ -458,7 +458,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)              // 起各worker之前 // rel
             }
 
             if (shm_zone[i].tag == oshm_zone[n].tag
-                && shm_zone[i].shm.size == oshm_zone[n].shm.size
+                && shm_zone[i].shm.size == oshm_zone[n].shm.size        // 在老的共享内存块中找到了 则复用之
                 && !shm_zone[i].noreuse)
             {
                 shm_zone[i].shm.addr = oshm_zone[n].shm.addr;
