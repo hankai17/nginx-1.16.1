@@ -81,7 +81,7 @@ ngx_http_lua_ssl_cert_handler_inline(ngx_http_request_t *r,
 
 
 char *
-ngx_http_lua_ssl_cert_by_lua_block(ngx_conf_t *cf, ngx_command_t *cmd,
+ngx_http_lua_ssl_cert_by_lua_block(ngx_conf_t *cf, ngx_command_t *cmd, // 解析 block块
     void *conf)
 {
     char        *rv;
@@ -100,7 +100,7 @@ ngx_http_lua_ssl_cert_by_lua_block(ngx_conf_t *cf, ngx_command_t *cmd,
 
 
 char *
-ngx_http_lua_ssl_cert_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
+ngx_http_lua_ssl_cert_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,        // 解析lua文件
     void *conf)
 {
 #if OPENSSL_VERSION_NUMBER < 0x1000205fL
@@ -133,7 +133,7 @@ ngx_http_lua_ssl_cert_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
 
     value = cf->args->elts;
 
-    lscf->srv.ssl_cert_handler = (ngx_http_lua_srv_conf_handler_pt) cmd->post;
+    lscf->srv.ssl_cert_handler = (ngx_http_lua_srv_conf_handler_pt) cmd->post; // ngx_http_lua_ssl_cert_handler_inline 
 
     if (cmd->post == ngx_http_lua_ssl_cert_handler_file) {
         /* Lua code in an external file */
@@ -182,7 +182,7 @@ ngx_http_lua_ssl_cert_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
 
 
 int
-ngx_http_lua_ssl_cert_handler(ngx_ssl_conn_t *ssl_conn, void *data)
+ngx_http_lua_ssl_cert_handler(ngx_ssl_conn_t *ssl_conn, void *data)         // 调用时机是在openssl库中 与原始nginx sni调用时机一样
 {
     lua_State                       *L;
     ngx_int_t                        rc;
@@ -298,7 +298,7 @@ ngx_http_lua_ssl_cert_handler(ngx_ssl_conn_t *ssl_conn, void *data)
 
     c->log->action = "loading SSL certificate by lua";
 
-    rc = lscf->srv.ssl_cert_handler(r, lscf, L);
+    rc = lscf->srv.ssl_cert_handler(r, lscf, L);                                // 调用ngx_http_lua_ssl_cert_handler_inline 里面会起协程 运行block块里的lua逻辑
 
     if (rc >= NGX_OK || rc == NGX_ERROR) {
         cctx->done = 1;
@@ -696,7 +696,7 @@ failed:
 
 
 int
-ngx_http_lua_ffi_ssl_set_der_private_key(ngx_http_request_t *r,
+ngx_http_lua_ffi_ssl_set_der_private_key(ngx_http_request_t *r,     // 解析der(二进制)格式证书
     const char *data, size_t len, char **err)
 {
     BIO               *bio = NULL;
@@ -983,7 +983,7 @@ ngx_http_lua_ffi_priv_key_pem_to_der(const u_char *pem, size_t pem_len,
 
 
 void *
-ngx_http_lua_ffi_parse_pem_cert(const u_char *pem, size_t pem_len,
+ngx_http_lua_ffi_parse_pem_cert(const u_char *pem, size_t pem_len,  // 解析PEM(文本)格式证书
     char **err)
 {
     BIO             *bio;

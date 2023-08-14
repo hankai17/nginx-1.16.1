@@ -4256,7 +4256,7 @@ ngx_http_proxy_lowat_check(ngx_conf_t *cf, void *post, void *data)
 #if (NGX_HTTP_SSL)
 
 static ngx_int_t
-ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
+ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)     // nginx作为客户端 与 os ssl建链时
 {
     ngx_pool_cleanup_t  *cln;
 
@@ -4299,7 +4299,7 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)
         }
     }
 
-    if (ngx_ssl_ciphers(cf, plcf->upstream.ssl, &plcf->ssl_ciphers, 0)  // 不配置
+    if (ngx_ssl_ciphers(cf, plcf->upstream.ssl, &plcf->ssl_ciphers, 0)  // 不配置加密套件
         != NGX_OK)
     {
         return NGX_ERROR;

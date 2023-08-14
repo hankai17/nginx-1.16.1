@@ -949,7 +949,7 @@ ngx_http_lua_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
         conf->srv.ssl_cert_handler = prev->srv.ssl_cert_handler;
     }
 
-    if (conf->srv.ssl_cert_src.len) {
+    if (conf->srv.ssl_cert_src.len) {                                               // 如果配置了ssl_certificate_by_lua_block {} 则设置
         sscf = ngx_http_conf_get_module_srv_conf(cf, ngx_http_ssl_module);
         if (sscf == NULL || sscf->ssl.ctx == NULL) {
             ngx_log_error(NGX_LOG_EMERG, cf->log, 0,
@@ -968,7 +968,8 @@ ngx_http_lua_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
 
 #   if OPENSSL_VERSION_NUMBER >= 0x1000205fL
 
-        SSL_CTX_set_cert_cb(sscf->ssl.ctx, ngx_http_lua_ssl_cert_handler, NULL);
+        SSL_CTX_set_cert_cb(sscf->ssl.ctx, ngx_http_lua_ssl_cert_handler, NULL);    // 对比: nginx中原始的设置sni回调: SSL_CTX_set_cert_cb(conf->ssl.ctx, ngx_http_ssl_certificate, conf);
+                                                                                    // 跟nginx中sni查找时机一样 调用时机'比较晚'
 
 #   else
 
