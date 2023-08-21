@@ -100,6 +100,8 @@ extern char ngx_http_lua_headers_metatable_key;
                           ngx_http_lua_context_name((ctx)->context));        \
     }
 
+// 以ngx.sleep为例 通过查阅文档我知道它只能用于下面列出的上下文中 并不包括log阶段
+//      context: rewrite_by_lua*, access_by_lua*, content_by_lua*, ngx.timer.*, ssl_certificate_by_lua*, ssl_session_fetch_by_lua*_
 
 #ifndef NGX_LUA_NO_FFI_API
 static ngx_inline ngx_int_t
