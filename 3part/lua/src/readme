@@ -80,3 +80,5 @@ lua源码设计精简、优雅、易读，在阅读之前理清代码的设计�
 其次，阅读lua VM的实现、函数调用、返回、string、metatable等实现；
 再次，阅读debug模式（一个额外的设施），帮助你理解lua内部细节；
 最后，阅读parser等编译相关的部分、垃圾收集（最难部分）
+
+https://blog.codingnow.com/
