@@ -739,7 +739,7 @@ union luai_Cast { double l_d; long l_l; };
 #if defined(LUA_USELONGLONG)
 
 #define LUA_INTFRMLEN		"ll"
-#define LUA_INTFRM_T		long long
+#define LUA_INTFRM_T		long long       // 整形8字节
 
 #else
 

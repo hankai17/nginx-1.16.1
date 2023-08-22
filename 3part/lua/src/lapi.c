@@ -239,7 +239,7 @@ LUA_API void lua_pushvalue (lua_State *L, int idx) {
 */
 
 
-LUA_API int lua_type (lua_State *L, int idx) {
+LUA_API int lua_type (lua_State *L, int idx) {          // 变量定义时 隐含有类型 只是没有表现出来(用户没有动手定义变量类型)
   StkId o = index2adr(L, idx);
   return (o == luaO_nilobject) ? LUA_TNONE : ttype(o);
 }

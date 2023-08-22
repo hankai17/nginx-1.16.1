@@ -36,9 +36,9 @@ struct lua_longjmp;  /* defined in ldo.c */
 
 
 typedef struct stringtable {
-  GCObject **hash;
-  lu_int32 nuse;  /* number of elements */
-  int size;
+  GCObject **hash;  // 指向一个TString二维数组
+  lu_int32 nuse;  /* number of elements */  // 实际存储了多少个TString字符串
+  int size;         // 二维数组的容量   // 判断nuse与size的比例常可用于判断hash数组是否需要动态扩大容量或者缩小容量
 } stringtable;
 
 
@@ -66,7 +66,7 @@ typedef struct CallInfo {
 ** `global state', shared by all threads of this state
 */
 typedef struct global_State {
-  stringtable strt;  /* hash table for strings */
+  stringtable strt;  /* hash table for strings */       // 全局TString二维数组 全局只有一个
   lua_Alloc frealloc;  /* function to reallocate memory */
   void *ud;         /* auxiliary data to `frealloc' */
   lu_byte currentwhite;

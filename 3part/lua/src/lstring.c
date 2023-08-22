@@ -53,20 +53,20 @@ static TString *newlstr (lua_State *L, const char *str, size_t l,
   stringtable *tb;
   if (l+1 > (MAX_SIZET - sizeof(TString))/sizeof(char))
     luaM_toobig(L);
-  ts = cast(TString *, luaM_malloc(L, (l+1)*sizeof(char)+sizeof(TString)));
+  ts = cast(TString *, luaM_malloc(L, (l+1)*sizeof(char)+sizeof(TString))); // TString 参考lobj.h
   ts->tsv.len = l;
   ts->tsv.hash = h;
-  ts->tsv.marked = luaC_white(G(L));
-  ts->tsv.tt = LUA_TSTRING;
+  ts->tsv.marked = luaC_white(G(L));                                // CommonHeader三剑客1
+  ts->tsv.tt = LUA_TSTRING;                                         // CommonHeader三剑客2
   ts->tsv.reserved = 0;
   memcpy(ts+1, str, l*sizeof(char));
   ((char *)(ts+1))[l] = '\0';  /* ending 0 */
-  tb = &G(L)->strt;
+  tb = &G(L)->strt;                                                 // 全局二维数组
   h = lmod(h, tb->size);
-  ts->tsv.next = tb->hash[h];  /* chain new entry */
+  ts->tsv.next = tb->hash[h];  /* chain new entry */                // 挂到对头 // CommonHeader三剑客3 --- 3剑客目的是为了实现gc回收
   tb->hash[h] = obj2gco(ts);
   tb->nuse++;
-  if (tb->nuse > cast(lu_int32, tb->size) && tb->size <= MAX_INT/2)
+  if (tb->nuse > cast(lu_int32, tb->size) && tb->size <= MAX_INT/2) // 动态扩容
     luaS_resize(L, tb->size*2);  /* too crowded */
   return ts;
 }
@@ -75,7 +75,7 @@ static TString *newlstr (lua_State *L, const char *str, size_t l,
 TString *luaS_newlstr (lua_State *L, const char *str, size_t l) {
   GCObject *o;
   unsigned int h = cast(unsigned int, l);  /* seed */
-  size_t step = (l>>5)+1;  /* if string is too long, don't hash all its chars */
+  size_t step = (l>>5)+1;  /* if string is too long, don't hash all its chars */    // NB 跳着hash!
   size_t l1;
   for (l1=l; l1>=step; l1-=step)  /* compute hash */
     h = h ^ ((h<<5)+(h>>2)+cast(unsigned char, str[l1-1]));

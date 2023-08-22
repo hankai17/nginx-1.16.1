@@ -40,7 +40,7 @@ typedef union GCObject GCObject;
 ** Common Header for all collectable objects (in macro form, to be
 ** included in other objects)
 */
-#define CommonHeader	GCObject *next; lu_byte tt; lu_byte marked
+#define CommonHeader	GCObject *next; lu_byte tt; lu_byte marked  // 所有可以被GC垃圾回收的对象结构 都会在头部加这个宏 // 称为CommonHeader三剑客
 
 
 /*
@@ -73,6 +73,33 @@ typedef union {
 typedef struct lua_TValue {
   TValuefields;
 } TValue;
+
+//typedef struct TValue {
+//  union Value {
+//    struct GCObject *gc;  /* collectable objects */ // 存储字符串类型时使用
+//    void *p;         		/* light userdata */
+//    lua_CFunction f; 		/* light C functions */
+//    lua_Integer i;   		/* integer numbers */
+//    lua_Number n;    		/* float numbers */
+//  } value_; 
+//  lu_byte tt_;		// 即typetag 即type 
+//} TValue;
+
+/*
+Lua5.3:
+lu_byte tt_字段  tt在源码中英文为type tag 即类型标记：
+该字段占用一个字节8位 lua中充分利用了每一个位 各个位都有其不同的含义
+    bit0~3: 16个数值 用于存储变量的基本类型 变量的基本类型即为本文开始时图1中类型枚举中0到8分别代表的nil到thread
+    bit4~5: 4个数值 用于存放类型变体 类型变体也属于它0到3位所对应的的基本类型
+    bit6: 是否可以垃圾回收 BIT_ISCOLLECTABLE
+
+#define makevariant(t,v)  ((t) | ((v) << 4))
+#define LUA_VFALSE  makevariant(LUA_TBOOLEAN, 0)    // 第5位0代表false 1代表true 即0000 0001为false 0001 0001为true
+#define LUA_VTRUE  makevariant(LUA_TBOOLEAN, 1)
+
+Lua5.3之前所有数字都是浮点数没有整数的概念 所以即使整数运算也会产生误差 
+数字类型也是通过类型变体来区分整型和浮点
+*/
 
 
 /* Macros to test type */
@@ -117,7 +144,7 @@ typedef struct lua_TValue {
 #define setnilvalue(obj) ((obj)->tt=LUA_TNIL)
 
 #define setnvalue(obj,x) \
-  { TValue *i_o=(obj); i_o->value.n=(x); i_o->tt=LUA_TNUMBER; }
+  { TValue *i_o=(obj); i_o->value.n=(x); i_o->tt=LUA_TNUMBER; }         // 老版本lua 只有一个number类型
 
 #define setpvalue(obj,x) \
   { TValue *i_o=(obj); i_o->value.p=(x); i_o->tt=LUA_TLIGHTUSERDATA; }
@@ -128,7 +155,7 @@ typedef struct lua_TValue {
 #define setsvalue(L,obj,x) \
   { TValue *i_o=(obj); \
     i_o->value.gc=cast(GCObject *, (x)); i_o->tt=LUA_TSTRING; \
-    checkliveness(G(L),i_o); }
+    checkliveness(G(L),i_o); }                                          // 字符串赋值
 
 #define setuvalue(L,obj,x) \
   { TValue *i_o=(obj); \
@@ -186,7 +213,7 @@ typedef struct lua_TValue {
 #define setttype(obj, tt) (ttype(obj) = (tt))
 
 
-#define iscollectable(o)	(ttype(o) >= LUA_TSTRING)
+#define iscollectable(o)	(ttype(o) >= LUA_TSTRING)       // 字符串类型往上 都是需要动态回收的
 
 
 
@@ -199,11 +226,12 @@ typedef TValue *StkId;  /* index to stack elements */
 typedef union TString {
   L_Umaxalign dummy;  /* ensures maximum alignment for strings */
   struct {
-    CommonHeader;
+    CommonHeader;       // 有点像QT中的 QObject
     lu_byte reserved;
-    unsigned int hash;
-    size_t len;
+    unsigned int hash;  // 字符串hash
+    size_t len;         // 字符串长度
   } tsv;
+  // char content[1]    // Lua5.3 1数组
 } TString;
 
 
