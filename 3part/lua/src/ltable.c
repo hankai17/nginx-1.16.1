@@ -57,7 +57,8 @@
 ** for some types, it is better to avoid modulus by power of 2, as
 ** they tend to have many 2 factors.
 */
-#define hashmod(t,n)	(gnode(t, ((n) % ((sizenode(t)-1)|1))))
+#define hashmod(t,n)	(gnode(t, ((n) % ((sizenode(t)-1)|1))))     // 对lsizenode2次幂减1取模（最后按位或1，是为了保持要用来取模的数字是不为0，是大于等于1的数）
+                                                                    // 对7(8-1) 取模
 
 
 #define hashpointer(t,p)	hashmod(t, IntPoint(p))
@@ -97,7 +98,7 @@ static Node *hashnum (const Table *t, lua_Number n) {
 ** returns the `main' position of an element in a table (that is, the index
 ** of its hash value)
 */
-static Node *mainposition (const Table *t, const TValue *key) {
+static Node *mainposition (const Table *t, const TValue *key) {     // 根据key计算的hash 拿到位置
   switch (ttype(key)) {
     case LUA_TNUMBER:
       return hashnum(t, nvalue(key));
@@ -271,7 +272,7 @@ static void setarrayvector (lua_State *L, Table *t, int size) {
 
 static void setnodevector (lua_State *L, Table *t, int size) {
   int lsize;
-  if (size == 0) {  /* no elements to hash part? */
+  if (size == 0) {  /* no elements to hash part? */                     // local t = {} 即空表 并不分配内存
     t->node = cast(Node *, dummynode);  /* use common `dummynode' */
     lsize = 0;
   }
@@ -398,14 +399,14 @@ static Node *getfreepos (Table *t) {
 */
 static TValue *newkey (lua_State *L, Table *t, const TValue *key) {
   Node *mp = mainposition(t, key);
-  if (!ttisnil(gval(mp)) || mp == dummynode) {
+  if (!ttisnil(gval(mp)) || mp == dummynode) {      // key的位置处非空
     Node *othern;
     Node *n = getfreepos(t);  /* get a free place */
     if (n == NULL) {  /* cannot find a free place? */
       rehash(L, t, key);  /* grow table */
       return luaH_set(L, t, key);  /* re-insert key into grown table */
     }
-    lua_assert(n != dummynode);
+    lua_assert(n != dummynode);                     // 开放寻址法
     othern = mainposition(t, key2tval(mp));
     if (othern != mp) {  /* is colliding node out of its main position? */
       /* yes; move colliding node into free position */
@@ -453,7 +454,7 @@ const TValue *luaH_getnum (Table *t, int key) {
 ** search function for strings
 */
 const TValue *luaH_getstr (Table *t, TString *key) {
-  Node *n = hashstr(t, key);
+  Node *n = hashstr(t, key);                                    // 找到桶的头部
   do {  /* check whether `key' is somewhere in the chain */
     if (ttisstring(gkey(n)) && rawtsvalue(gkey(n)) == key)
       return gval(n);  /* that's it */

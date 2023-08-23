@@ -175,7 +175,7 @@ Lua5.3之前所有数字都是浮点数没有整数的概念 所以即使整数�
 #define sethvalue(L,obj,x) \
   { TValue *i_o=(obj); \
     i_o->value.gc=cast(GCObject *, (x)); i_o->tt=LUA_TTABLE; \
-    checkliveness(G(L),i_o); }
+    checkliveness(G(L),i_o); }                                          // gc指向真正的数据; tt赋为table
 
 #define setptvalue(L,obj,x) \
   { TValue *i_o=(obj); \
@@ -351,28 +351,33 @@ typedef union Closure {
 typedef union TKey {
   struct {
     TValuefields;
-    struct Node *next;  /* for chaining */
+    struct Node *next;  /* for chaining */  // 用于哈希冲突的时候链接向下一个位置 (开放寻址法特有的)
   } nk;
-  TValue tvk;
+  TValue tvk;                               // value是一个值 key其实也是一个值
 } TKey;
 
 
-typedef struct Node {
+typedef struct Node {                       // node只只只用于hash表元素抽象
   TValue i_val;
   TKey i_key;
 } Node;
 
 
 typedef struct Table {
-  CommonHeader;
-  lu_byte flags;  /* 1<<p means tagmethod(p) is not present */ 
-  lu_byte lsizenode;  /* log2 of size of `node' array */
-  struct Table *metatable;
-  TValue *array;  /* array part */
-  Node *node;
-  Node *lastfree;  /* any free position is before this position */
-  GCObject *gclist;
-  int sizearray;  /* size of `array' array */
+  CommonHeader;                                                     // 所有可回收对象的 头部都必须定义GCObject
+  lu_byte flags;  /* 1<<p means tagmethod(p) is not present */      // 元表字段查询标记
+  struct Table *metatable;                                          // 元表
+  GCObject *gclist;                                                 // 垃圾回收相关
+
+  //////////////////////////////////////////////////////////////////// 字典相关
+  lu_byte lsizenode;  /* log2 of size of `node' array */            // 存储字典容量log2后的值
+  Node *node;                                                       // 指向字典首个结点的指针
+  Node *lastfree;  /* any free position is before this position */  // 上一次空的结点位置
+
+  //////////////////////////////////////////////////////////////////// 数组相关
+  int sizearray;  /* size of `array' array */                       // 数组容量
+  TValue *array;  /* array part */                                  // 指向数组的指针
+
 } Table;
 
 
