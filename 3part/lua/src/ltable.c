@@ -558,7 +558,7 @@ static int unbound_search (Table *t, unsigned int j) {
 ** Try to find a boundary in table `t'. A `boundary' is an integer index
 ** such that t[i] is non-nil and t[i+1] is nil (and 0 if t[1] is nil).
 */
-int luaH_getn (Table *t) {
+int luaH_getn (Table *t) {                          // 就是table常用的取长度操作 #t
   unsigned int j = t->sizearray;
   if (j > 0 && ttisnil(&t->array[j - 1])) {
     /* there is a boundary in the array part: (binary) search for it */

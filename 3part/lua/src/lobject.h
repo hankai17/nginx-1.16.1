@@ -366,7 +366,6 @@ typedef struct Node {                       // node只只只用于hash表元素�
 typedef struct Table {
   CommonHeader;                                                     // 所有可回收对象的 头部都必须定义GCObject
   lu_byte flags;  /* 1<<p means tagmethod(p) is not present */      // 元表字段查询标记
-  struct Table *metatable;                                          // 元表
   GCObject *gclist;                                                 // 垃圾回收相关
 
   //////////////////////////////////////////////////////////////////// 字典相关
@@ -377,6 +376,8 @@ typedef struct Table {
   //////////////////////////////////////////////////////////////////// 数组相关
   int sizearray;  /* size of `array' array */                       // 数组容量
   TValue *array;  /* array part */                                  // 指向数组的指针
+
+  struct Table *metatable;                                          // 元表     // 元表相关的操作专业术语叫做元方法: tag method
 
 } Table;
 

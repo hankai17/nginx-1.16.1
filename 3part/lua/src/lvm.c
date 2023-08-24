@@ -104,16 +104,30 @@ static void callTM (lua_State *L, const TValue *f, const TValue *p1,
   luaD_call(L, L->top - 4, 0);
 }
 
+/*
+local t = {}
+local metatable_t = {}
+setmetatable(t, metatable_t)
 
-void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {
+metatable_t.__index = {                             // __index可以是一个table
+  [1] = "hello 1",
+  [2] = "hello 2",
+}
+metatable_t.__index = function (t, k)               // __index可以是一个function
+  return "hello function index " .. tostring(k)
+end
+*/
+
+void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {        // table根据某个键查询值最后要调用的函数
   int loop;
-  for (loop = 0; loop < MAXTAGLOOP; loop++) {
+  for (loop = 0; loop < MAXTAGLOOP; loop++) {                                       // 递归查找table ---> 继承  最大2000层
     const TValue *tm;
     if (ttistable(t)) {  /* `t' is a table? */
       Table *h = hvalue(t);
       const TValue *res = luaH_get(h, key); /* do a primitive get */
       if (!ttisnil(res) ||  /* result is no nil? */
-          (tm = fasttm(L, h->metatable, TM_INDEX)) == NULL) { /* or no TM? */
+          (tm = fasttm(L, h->metatable, TM_INDEX)) == NULL) { /* or no TM? */       // 若为table类型变量 则查询它metatable中的__index字段 // 获取__index元方法
+                                                                                    // 若没有设置metatable或者metatable对应的__index变量为空 这里都将返回空
         setobj2s(L, val, res);
         return;
       }
@@ -121,11 +135,11 @@ void luaV_gettable (lua_State *L, const TValue *t, TValue *key, StkId val) {
     }
     else if (ttisnil(tm = luaT_gettmbyobj(L, t, TM_INDEX)))
       luaG_typeerror(L, t, "index");
-    if (ttisfunction(tm)) {
+    if (ttisfunction(tm)) {                                                         // tm为函数 则调用该函数获取返回值
       callTMres(L, val, tm, t, key);
       return;
     }
-    t = tm;  /* else repeat with `tm' */ 
+    t = tm;  /* else repeat with `tm' */                                            // 否则tm为table 则尝试用同样的key值从tm这个table中取得数据
   }
   luaG_runerror(L, "loop in gettable");
 }
@@ -262,12 +276,12 @@ int luaV_equalval (lua_State *L, const TValue *t1, const TValue *t2) {
                          TM_EQ);
       break;  /* will try TM */
     }
-    case LUA_TTABLE: {
+    case LUA_TTABLE: {                                          
       if (hvalue(t1) == hvalue(t2)) return 1;
-      tm = get_compTM(L, hvalue(t1)->metatable, hvalue(t2)->metatable, TM_EQ);
+      tm = get_compTM(L, hvalue(t1)->metatable, hvalue(t2)->metatable, TM_EQ);      // 如果定义了__eq 则调用该元方法判断
       break;  /* will try TM */
     }
-    default: return gcvalue(t1) == gcvalue(t2);
+    default: return gcvalue(t1) == gcvalue(t2);                                     // 如果没有定义__eq 则会直接通过指针地址判断两个table对象t1 t2是否相等。
   }
   if (tm == NULL) return 0;  /* no TM? */
   callTMres(L, L->top, tm, t1, t2);  /* call TM */

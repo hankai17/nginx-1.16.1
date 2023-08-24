@@ -155,6 +155,9 @@ size_t luaC_separateudata (lua_State *L, int all) {
 }
 
 
+// Lua中垃圾内存回收默认采用标记清除算法 // 分标记和清除两个阶段
+// 标记阶段会从根结点开始标记所有可达的对象（有强引用即为可达）
+// 一个对象如果没有被标记 在清除阶段(collectgarbage())则会被清除
 static int traversetable (global_State *g, Table *h) {
   int i;
   int weakkey = 0;
@@ -162,7 +165,7 @@ static int traversetable (global_State *g, Table *h) {
   const TValue *mode;
   if (h->metatable)
     markobject(g, h->metatable);
-  mode = gfasttm(g, h->metatable, TM_MODE);
+  mode = gfasttm(g, h->metatable, TM_MODE);                             // 获取__mode元方法
   if (mode && ttisstring(mode)) {  /* is there a weak mode? */
     weakkey = (strchr(svalue(mode), 'k') != NULL);
     weakvalue = (strchr(svalue(mode), 'v') != NULL);
@@ -170,15 +173,16 @@ static int traversetable (global_State *g, Table *h) {
       h->marked &= ~(KEYWEAK | VALUEWEAK);  /* clear bits */
       h->marked |= cast_byte((weakkey << KEYWEAKBIT) |
                              (weakvalue << VALUEWEAKBIT));
-      h->gclist = g->weak;  /* must be cleared after GC, ... */
+      h->gclist = g->weak;  /* must be cleared after GC, ... */         // 很暴力 直接把当前table链接到待gc垃圾回收的链表中
       g->weak = obj2gco(h);  /* ... so put in the appropriate list */
     }
   }
   if (weakkey && weakvalue) return 1;
-  if (!weakvalue) {
+                                                                        // ---------------------------
+  if (!weakvalue) {                                                     // 如果是默认的强引用
     i = h->sizearray;
     while (i--)
-      markvalue(g, &h->array[i]);
+      markvalue(g, &h->array[i]);                                       // 则把数组部分的value全部标记(为强)
   }
   i = sizenode(h);
   while (i--) {
@@ -188,7 +192,7 @@ static int traversetable (global_State *g, Table *h) {
       removeentry(n);  /* remove empty entries */
     else {
       lua_assert(!ttisnil(gkey(n)));
-      if (!weakkey) markvalue(g, gkey(n));
+      if (!weakkey) markvalue(g, gkey(n));                              // 则把hash部分的kv全部标记
       if (!weakvalue) markvalue(g, gval(n));
     }
   }
@@ -441,8 +445,18 @@ static void checkSizes (lua_State *L) {
   }
 }
 
+/*
+local t = {}
+local metatable_t = {
+    __gc = function(tt)                                             // __gc必须是一个函数
+        print("release: ", tt)
+    end,
+}
+setmeattable(t, metatable_t)
+print("table addr: ", t, " metatable_t addr: ", metatable_t)
+*/
 
-static void GCTM (lua_State *L) {
+static void GCTM (lua_State *L) {                                   // Lua在销毁清除对象的时候会调用下面GCTM方法
   global_State *g = G(L);
   GCObject *o = g->tmudata->gch.next;  /* get first element */
   Udata *udata = rawgco2u(o);
@@ -455,8 +469,8 @@ static void GCTM (lua_State *L) {
   udata->uv.next = g->mainthread->next;  /* return it to `root' list */
   g->mainthread->next = o;
   makewhite(g, o);
-  tm = fasttm(L, udata->uv.metatable, TM_GC);
-  if (tm != NULL) {
+  tm = fasttm(L, udata->uv.metatable, TM_GC);                       // 获取__gc元方法
+  if (tm != NULL) {                                                 // 若定义了__gc元方法 则调用此函数
     lu_byte oldah = L->allowhook;
     lu_mem oldt = g->GCthreshold;
     L->allowhook = 0;  /* stop debug hooks during GC tag method */
