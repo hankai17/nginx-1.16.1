@@ -98,7 +98,7 @@ static Node *hashnum (const Table *t, lua_Number n) {
 ** returns the `main' position of an element in a table (that is, the index
 ** of its hash value)
 */
-static Node *mainposition (const Table *t, const TValue *key) {     // 根据key计算的hash 拿到位置
+static Node *mainposition (const Table *t, const TValue *key) {     // 根据key计算的hash 拿到位置 (注意这里查的是hash表)
   switch (ttype(key)) {
     case LUA_TNUMBER:
       return hashnum(t, nvalue(key));
@@ -118,7 +118,7 @@ static Node *mainposition (const Table *t, const TValue *key) {     // 根据key
 ** returns the index for `key' if `key' is an appropriate key to live in
 ** the array part of the table, -1 otherwise.
 */
-static int arrayindex (const TValue *key) {
+static int arrayindex (const TValue *key) {     // key 转为 index
   if (ttisnumber(key)) {
     lua_Number n = nvalue(key);
     int k;
@@ -507,7 +507,7 @@ TValue *luaH_set (lua_State *L, Table *t, const TValue *key) {
 
 
 TValue *luaH_setnum (lua_State *L, Table *t, int key) {
-  const TValue *p = luaH_getnum(t, key);
+  const TValue *p = luaH_getnum(t, key);     // 数组在插入下标为整数的数据的时候如果没有位置了就会选择插入到哈希表 而哈希表会在找不到空位置的时候进行扩容
   if (p != luaO_nilobject)
     return cast(TValue *, p);
   else {
