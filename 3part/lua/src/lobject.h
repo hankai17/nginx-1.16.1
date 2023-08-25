@@ -76,7 +76,7 @@ typedef struct lua_TValue {
 
 //typedef struct TValue {
 //  union Value {
-//    struct GCObject *gc;  /* collectable objects */ // 存储字符串类型时使用
+//    struct GCObject *gc;  /* collectable objects */ // 存储复合类型(string/table...)时使用 // lstate.h中定义
 //    void *p;         		/* light userdata */
 //    lua_CFunction f; 		/* light C functions */
 //    lua_Integer i;   		/* integer numbers */
@@ -248,8 +248,40 @@ typedef union Udata {
     struct Table *env;
     size_t len;
   } uv;
+  // char conrtent[1]   // 存放C结构体
 } Udata;
 
+/*
+场景: lua(栈)中构造了一个People结构体
+// 只需要提前调用一次,把__name为"People"的元表注册到Lua
+static int RegisterPeopleMetatable(lua_State *L)
+{
+  luaL_newmetatable(L, "People");   // lauxlib.c 创建一个__name为People的全局table
+  return 1;
+}
+
+static int People(lua_State *L)
+{
+  struct People *pPeople = (struct People *)lua_newuserdata(L, sizeof(struct People));
+  
+  // 设置上面这个UserData的metatable为已经注册好的__name为"People"的元表
+  //luaL_setmetatable(L, "People"); // 等价于下面两行
+  luaL_getmetatable(L, "People");   // 1) 从全局找__name是People的table
+  lua_setmetatable(L, -2);          // 2) 设置栈顶元素的metatable为叫指定__name的metatable // 为何是-2 ?
+  
+  return 1; // 新的userdata已经在栈上了
+}
+
+C语言读取并修改这个结构体
+static int InitName(lua_State *L)
+{
+  struct People *pPeople = (struct People *)luaL_testudata(L, 1， “People”); // 第 1 步 从Lua栈顶获取一个UserData对象 
+  if(pPeople != NULL) {
+    pPeople->name = "MaNong"; // 第 2 步
+  }
+  return 1;
+}
+*/
 
 
 

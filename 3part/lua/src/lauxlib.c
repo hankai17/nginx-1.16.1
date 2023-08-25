@@ -110,7 +110,7 @@ LUALIB_API int luaL_checkoption (lua_State *L, int narg, const char *def,
 
 
 LUALIB_API int luaL_newmetatable (lua_State *L, const char *tname) {
-  lua_getfield(L, LUA_REGISTRYINDEX, tname);  /* get registry.name */
+  lua_getfield(L, LUA_REGISTRYINDEX, tname);  /* get registry.name */       // 在全局环境中创建一个元表 然后设置该元表的__name
   if (!lua_isnil(L, -1))  /* name already in use? */
     return 0;  /* leave previous value on top, but return 0 */
   lua_pop(L, 1);
