@@ -730,8 +730,8 @@ void luaV_execute (lua_State *L, int nexeccalls) {
         luaF_close(L, ra);
         continue;
       }
-      case OP_CLOSURE: {
-        Proto *p;
+      case OP_CLOSURE: {                            // 创建Lua闭包 并 初始化
+        Proto *p;                                   // Proto即为函数的底层数据结构
         Closure *ncl;
         int nup, j;
         p = cl->p->p[GETARG_Bx(i)];

@@ -120,7 +120,7 @@ struct lua_State {
   lua_Hook hook;
   TValue l_gt;  /* table of globals */
   TValue env;  /* temporary place for environments */
-  GCObject *openupval;  /* list of open upvalues in this stack */
+  GCObject *openupval;  /* list of open upvalues in this stack */               // 所有open态的UpVal链  按照各UpVal变量声明顺序 后声明的会在表头 然后根据他们在链表的深度，会依次给他们一个level值
   GCObject *gclist;
   struct lua_longjmp *errorJmp;  /* current error recover point */
   ptrdiff_t errfunc;  /* current error handling function (stack index) */

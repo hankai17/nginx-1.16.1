@@ -52,7 +52,7 @@ UpVal *luaF_newupval (lua_State *L) {
 
 UpVal *luaF_findupval (lua_State *L, StkId level) {
   global_State *g = G(L);
-  GCObject **pp = &L->openupval;
+  GCObject **pp = &L->openupval;                                // UpVal都存储于当前线程lua_State对象的openupval中 所以查找一个UpVal也是从这个链表进行查找
   UpVal *p;
   UpVal *uv;
   while (*pp != NULL && (p = ngcotouv(*pp))->v >= level) {
@@ -64,11 +64,11 @@ UpVal *luaF_findupval (lua_State *L, StkId level) {
     }
     pp = &p->next;
   }
-  uv = luaM_new(L, UpVal);  /* not found: create a new one */
+  uv = luaM_new(L, UpVal);  /* not found: create a new one */   // 当没有找到指定level的UpVal的话 就会进行创建
   uv->tt = LUA_TUPVAL;
   uv->marked = luaC_white(g);
   uv->v = level;  /* current value lives in the stack */
-  uv->next = *pp;  /* chain it in the proper position */
+  uv->next = *pp;  /* chain it in the proper position */        // 前插法
   *pp = obj2gco(uv);
   uv->u.l.prev = &g->uvhead;  /* double link it in `uvhead' list */
   uv->u.l.next = g->uvhead.u.l.next;
@@ -93,10 +93,11 @@ void luaF_freeupval (lua_State *L, UpVal *uv) {
 }
 
 
-void luaF_close (lua_State *L, StkId level) {
+void luaF_close (lua_State *L, StkId level) {               // 函数在返回后会切换到close状态
   UpVal *uv;
   global_State *g = G(L);
-  while (L->openupval != NULL && (uv = ngcotouv(L->openupval))->v >= level) {
+  while (L->openupval != NULL && 
+      (uv = ngcotouv(L->openupval))->v >= level) {          // 把当前UpVal从链表移除 // 但要保留它的UpVal值 因为这些返回值可能会被外部变量引用
     GCObject *o = obj2gco(uv);
     lua_assert(!isblack(o) && uv->v != &uv->u.value);
     L->openupval = uv->next;  /* remove from `open' list */

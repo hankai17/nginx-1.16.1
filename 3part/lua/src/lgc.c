@@ -528,7 +528,9 @@ static void markroot (lua_State *L) {
 
 static void remarkupvals (global_State *g) {
   UpVal *uv;
-  for (uv = g->uvhead.u.l.next; uv != &g->uvhead; uv = uv->u.l.next) {
+  for (uv = g->uvhead.u.l.next; uv != &g->uvhead; uv = uv->u.l.next) {          // 遍历openupvalue并对每个结点进行标记
+                                                                                // UpValue切换到close状态之后(函数返回后) 就不能通过这里的openupvalue被标记了
+                                                                                // 而是像普通变量一样 从对象根结点开始遍历 若遍历不到这个变量的时候 可以暂时理解为没有被引用了(其实内部的循环引用也遍历不到) 就会标记失败 然后就会在清除阶段被清除
     lua_assert(uv->u.l.next->u.l.prev == uv && uv->u.l.prev->u.l.next == uv);
     if (isgray(obj2gco(uv)))
       markvalue(g, uv->v);

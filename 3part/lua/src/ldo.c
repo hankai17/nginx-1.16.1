@@ -332,7 +332,7 @@ static StkId callrethooks (lua_State *L, StkId firstResult) {
   ptrdiff_t fr = savestack(L, firstResult);  /* next call may change stack */
   luaD_callhook(L, LUA_HOOKRET, -1);
   if (f_isLua(L->ci)) {  /* Lua function? */
-    while ((L->hookmask & LUA_MASKRET) && L->ci->tailcalls--) /* tail calls */
+    while ((L->hookmask & LUA_MASKRET) && L->ci->tailcalls--) /* tail calls */      // 尾调用
       luaD_callhook(L, LUA_HOOKTAILRET, -1);
   }
   return restorestack(L, fr);
@@ -347,13 +347,13 @@ int luaD_poscall (lua_State *L, StkId firstResult) {
     firstResult = callrethooks(L, firstResult);
   ci = L->ci--;
   res = ci->func;  /* res == final position of 1st result */
-  wanted = ci->nresults;
+  wanted = ci->nresults;                                        // nres就是函数的返回值个数 wanted就是外部调用这个函数的时候期待的返回值个数
   L->base = (ci - 1)->base;  /* restore base */
   L->savedpc = (ci - 1)->savedpc;  /* restore savedpc */
   /* move results to correct place */
-  for (i = wanted; i != 0 && firstResult < L->top; i--)
+  for (i = wanted; i != 0 && firstResult < L->top; i--)         // 
     setobjs2s(L, res++, firstResult++);
-  while (i-- > 0)
+  while (i-- > 0)                                               // 若期待值数量大于返回值数量 则把多余的期待值赋值为nil
     setnilvalue(res++);
   L->top = res;
   return (wanted - LUA_MULTRET);  /* 0 iff wanted == LUA_MULTRET */

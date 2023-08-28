@@ -290,26 +290,36 @@ static int InitName(lua_State *L)
 */
 typedef struct Proto {
   CommonHeader;
-  TValue *k;  /* constants used by the function */
-  Instruction *code;
-  struct Proto **p;  /* functions defined inside the function */
-  int *lineinfo;  /* map from opcodes to source lines */
-  struct LocVar *locvars;  /* information about local variables */
-  TString **upvalues;  /* upvalue names */
-  TString  *source;
-  int sizeupvalues;
-  int sizek;  /* size of `k' */
-  int sizecode;
-  int sizelineinfo;
   int sizep;  /* size of `p' */
   int sizelocvars;
-  int linedefined;
-  int lastlinedefined;
   GCObject *gclist;
   lu_byte nups;  /* number of upvalues */
-  lu_byte numparams;
+
+  lu_byte numparams;        // 函数参数的数量
+  lu_byte maxstacksize;     // 函数所需要寄存器数量
+
+  int sizeupvalues;         //  UpValue的数量与描述
+  TString **upvalues;       // /* upvalue names */ // UpValue的变量名字/作用域是在本函数内部还是在外层 还有一个用于定位UpValue所在位置的指针偏移值
+
+  int sizek;                // k代表常量 这里分别是常量数量与常量所存储在的数组 这里可以知道常量在Lua中也是像普通数据类型一样需要占用内存的 /* size of `k' */
+  TValue *k;                // 常量数组 /* constants used by the function */
+
+  struct Proto **p;         // 函数内部又定义了的其它函数 所以说Lua的函数支持嵌套定义(根源) /* functions defined inside the function */
+
+  int sizecode;             // 该函数所调用的所有指令码数量和指令码数组 函数执行的时候就是按顺序跑这些的指令码
+  Instruction *code;        // 指令码数组
+
+  int linedefined;          // 函数的开始与结束的行
+  int lastlinedefined;
+
+  int *lineinfo;            // 存储函数内各条指令码的地址偏移量 若偏移值过大则会同时记录该指令的绝对偏移值 /* map from opcodes to source lines */
+  int sizelineinfo;
+
+  struct LocVar *locvars;   // 局部变量描述 /* information about local variables */
+
+  TString  *source;         // 该函数的源代码的字符串表示
+
   lu_byte is_vararg;
-  lu_byte maxstacksize;
 } Proto;
 
 
@@ -331,7 +341,13 @@ typedef struct LocVar {
 ** Upvalues
 */
 
-typedef struct UpVal {
+/*
+一个UpVal当它所属的那个函数返回之后（调用了return），或者Lua运行堆栈发生改变，函数已经不处于合理堆栈下标的时候，该函数所包含的UpVal即会切换到close状态。
+当一个UpVal处于open状态的时候，上图结构体中的v, u.open(u.open.next, u.open.previous)字段生效。
+而UpVal处于close状态的时候，结构体中的v, u.value字段生效。
+*/
+
+typedef struct UpVal {      // 有两种状态 分别是open/close态
   CommonHeader;
   TValue *v;  /* points to stack or to its own value */
   union {
@@ -351,18 +367,21 @@ typedef struct UpVal {
 #define ClosureHeader \
 	CommonHeader; lu_byte isC; lu_byte nupvalues; GCObject *gclist; \
 	struct Table *env
+// nupvalues代表闭包中upvalues数组长度 // gcList代表这个闭包结构体在垃圾清除的时候 要清除包括upvalues在内的一系列可回收对象
+
+// 函数加UpValue即为闭包 // UpValue可以理解为在当前函数外声明但函数内也可以访问到的变量 类似于全局变量但有一定作用域的一种数据
 
 typedef struct CClosure {
   ClosureHeader;
   lua_CFunction f;
-  TValue upvalue[1];
+  TValue upvalue[1];		// n个参数?
 } CClosure;
 
 
 typedef struct LClosure {
   ClosureHeader;
-  struct Proto *p;
-  UpVal *upvals[1];
+  struct Proto *p;          // Lua闭包的强大之处在于Proto的设计
+  UpVal *upvals[1];         // Lua闭包的upvals用的是UpVal结构
 } LClosure;
 
 
@@ -372,7 +391,10 @@ typedef union Closure {
 } Closure;
 
 
+// C闭包
 #define iscfunction(o)	(ttype(o) == LUA_TFUNCTION && clvalue(o)->c.isC)
+
+// Lua闭包
 #define isLfunction(o)	(ttype(o) == LUA_TFUNCTION && !clvalue(o)->c.isC)
 
 
