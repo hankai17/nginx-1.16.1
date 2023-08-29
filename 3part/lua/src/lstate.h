@@ -102,28 +102,34 @@ struct lua_State {
   lu_byte status;
   StkId top;  /* first free slot in the stack */
   StkId base;  /* base of current function */
-  global_State *l_G;
-  CallInfo *ci;  /* call info for current function */
   const Instruction *savedpc;  /* `savedpc' of current function */
-  StkId stack_last;  /* last free slot in the stack */
+
+  StkId stack_last;  /* last free slot in the stack */                          // 栈头和尾部指针
   StkId stack;  /* stack base */
+
+  global_State *l_G;                                                            // 所有lua_State指向全局同一个global_State 所以Lua中Thread可以共享到这些全局数据
+
+  CallInfo *ci;  /* call info for current function */                           // 运行函数信息相关 当前状态机运行时候的入口函数 指向当前执行函数（链表）的指针 链表中所有函数的数量 当前执行的函数的深度
   CallInfo *end_ci;  /* points after end of ci array*/
   CallInfo *base_ci;  /* array of CallInfo's */
   int stacksize;
   int size_ci;  /* size of array `base_ci' */
+
   unsigned short nCcalls;  /* number of nested C calls */
   unsigned short baseCcalls;  /* nested C calls when resuming coroutine */
-  lu_byte hookmask;
+
+  lu_byte hookmask;                                                             // 钩子相关 lua.h中的四个宏
   lu_byte allowhook;
   int basehookcount;
   int hookcount;
   lua_Hook hook;
+
   TValue l_gt;  /* table of globals */
   TValue env;  /* temporary place for environments */
-  GCObject *openupval;  /* list of open upvalues in this stack */               // 所有open态的UpVal链  按照各UpVal变量声明顺序 后声明的会在表头 然后根据他们在链表的深度，会依次给他们一个level值
-  GCObject *gclist;
-  struct lua_longjmp *errorJmp;  /* current error recover point */
-  ptrdiff_t errfunc;  /* current error handling function (stack index) */
+  GCObject *openupval;  /* list of open upvalues in this stack */               // 闭包相关: 所有open态的UpVal链  按照各UpVal变量声明顺序 后声明的会在表头 然后根据他们在链表的深度，会依次给他们一个level值
+  GCObject *gclist;                                                             // 用于GC垃圾回收算法链接到某个回收队列
+  struct lua_longjmp *errorJmp;  /* current error recover point */              // 常用于保护模式下运行某个函数 若发生错误的时候会调用跳转指令跳转到这个位置
+  ptrdiff_t errfunc;  /* current error handling function (stack index) */       // 若有设置此错误回调函数 则运行发生错误后会调用这个函数 通常用于输出异常信息
 };
 
 

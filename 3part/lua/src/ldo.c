@@ -417,14 +417,14 @@ static int resume_error (lua_State *L, const char *msg) {
 LUA_API int lua_resume (lua_State *L, int nargs) {
   int status;
   lua_lock(L);
-  if (L->status != LUA_YIELD && (L->status != 0 || L->ci != L->base_ci))
+  if (L->status != LUA_YIELD && (L->status != 0 || L->ci != L->base_ci))    // 确保当前协程为yield态
       return resume_error(L, "cannot resume non-suspended coroutine");
-  if (L->nCcalls >= LUAI_MAXCCALLS)
+  if (L->nCcalls >= LUAI_MAXCCALLS)                                         // 协程调协程的最大深度为200
     return resume_error(L, "C stack overflow");
   luai_userstateresume(L, nargs);
   lua_assert(L->errfunc == 0);
   L->baseCcalls = ++L->nCcalls;
-  status = luaD_rawrunprotected(L, resume, L->top - nargs);
+  status = luaD_rawrunprotected(L, resume, L->top - nargs);                 // protected: 若执行协程时发生异常 则进行恢复 // 不需要担心调用一个协程后会因为协程内部的错误导致外部的主程序崩溃
   if (status != 0) {  /* error? */
     L->status = cast_byte(status);  /* mark thread as `dead' */
     luaD_seterrorobj(L, status, L->top);

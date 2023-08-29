@@ -318,10 +318,10 @@ LUA_API void lua_setlevel	(lua_State *from, lua_State *to);
 /*
 ** Event masks
 */
-#define LUA_MASKCALL	(1 << LUA_HOOKCALL)
-#define LUA_MASKRET	(1 << LUA_HOOKRET)
-#define LUA_MASKLINE	(1 << LUA_HOOKLINE)
-#define LUA_MASKCOUNT	(1 << LUA_HOOKCOUNT)
+#define LUA_MASKCALL	(1 << LUA_HOOKCALL)     // 被调用时
+#define LUA_MASKRET	(1 << LUA_HOOKRET)          // 执行结束返回的时候 
+#define LUA_MASKLINE	(1 << LUA_HOOKLINE)     // 每一行执行完后
+#define LUA_MASKCOUNT	(1 << LUA_HOOKCOUNT)    // 每次执行统计运行次数
 
 typedef struct lua_Debug lua_Debug;  /* activation record */
 

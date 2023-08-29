@@ -165,7 +165,7 @@ Lua5.3之前所有数字都是浮点数没有整数的概念 所以即使整数�
 #define setthvalue(L,obj,x) \
   { TValue *i_o=(obj); \
     i_o->value.gc=cast(GCObject *, (x)); i_o->tt=LUA_TTHREAD; \
-    checkliveness(G(L),i_o); }
+    checkliveness(G(L),i_o); }                                          // gc指向lua_State
 
 #define setclvalue(L,obj,x) \
   { TValue *i_o=(obj); \

@@ -479,9 +479,9 @@ static const luaL_Reg base_funcs[] = {
 ** =======================================================
 */
 
-#define CO_RUN	0	/* running */
+#define CO_RUN	0	/* running */                                           // 协程四态
 #define CO_SUS	1	/* suspended */
-#define CO_NOR	2	/* 'normal' (it resumed another coroutine) */
+#define CO_NOR	2	/* 'normal' (it resumed another coroutine) */           // ready态 即"待运行"态
 #define CO_DEAD	3
 
 static const char *const statnames[] =
@@ -525,7 +525,7 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
   }
   lua_xmove(L, co, narg);
   lua_setlevel(L, co);
-  status = lua_resume(co, narg);
+  status = lua_resume(co, narg);                                            // ldo.c
   if (status == 0 || status == LUA_YIELD) {
     int nres = lua_gettop(co);
     if (!lua_checkstack(L, nres + 1))
@@ -574,8 +574,9 @@ static int luaB_auxwrap (lua_State *L) {
 
 
 static int luaB_cocreate (lua_State *L) {
-  lua_State *NL = lua_newthread(L);
-  luaL_argcheck(L, lua_isfunction(L, 1) && !lua_iscfunction(L, 1), 1,
+  lua_State *NL = lua_newthread(L);                                         // 创建出一个Thread类型变量
+  luaL_argcheck(L, lua_isfunction(L, 1) && !lua_iscfunction(L, 1), 1,       // 把参数中的函数设置到这个新创建的thread状态机的运行堆栈上
+                                                                            // 创建完成后默认是处于挂起
     "Lua function expected");
   lua_pushvalue(L, 1);  /* move function to top */
   lua_xmove(L, NL, 1);  /* move function from L to NL */
@@ -602,7 +603,7 @@ static int luaB_corunning (lua_State *L) {
 }
 
 
-static const luaL_Reg co_funcs[] = {
+static const luaL_Reg co_funcs[] = {                            // 协程相关的函数
   {"create", luaB_cocreate},
   {"resume", luaB_coresume},
   {"running", luaB_corunning},
