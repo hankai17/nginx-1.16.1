@@ -61,6 +61,27 @@ typedef struct CallInfo {
 #define f_isLua(ci)	(!ci_func(ci)->c.isC)
 #define isLua(ci)	(ttisfunction((ci)->func) && f_isLua(ci))
 
+/*
+---------------------+    \
+|                    |     |
+|预充值/内存池/缓冲区|     |
+|                    |     |
+---------------------+     |
+|                    |     + totalbytes
+|                    |     |
+|    allocated       |     |
+|                    |     |
+|                    |     |
+---------------------+     /
+
+代码实现/抽象:
+    预充值一开始是一个负值 -100MB
+    每当分配Value时 预充值+=sizeof(value)
+    当预充值>=0时 证明缓冲区已经消费完了 此时就需要gc
+
+
+*/
+
 
 /*
 ** `global state', shared by all threads of this state
@@ -79,10 +100,12 @@ typedef struct global_State {
   GCObject *weak;  /* list of weak tables (to be cleared) */
   GCObject *tmudata;  /* last element of list of userdata to be GC */
   Mbuffer buff;  /* temporary buffer for string concatentation */
+
   lu_mem GCthreshold;
   lu_mem totalbytes;  /* number of bytes currently allocated */
   lu_mem estimate;  /* an estimate of number of bytes actually in use */
   lu_mem gcdept;  /* how much GC is `behind schedule' */
+
   int gcpause;  /* size of pause between successive GCs */
   int gcstepmul;  /* GC `granularity' */
   lua_CFunction panic;  /* to be called in unprotected errors */
