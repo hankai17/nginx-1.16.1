@@ -294,19 +294,19 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 ** for at most two levels: An upvalue cannot refer to another upvalue
 ** (only closures can), and a userdata's metatable must be a table.
 */
-static void reallymarkobject (global_State *g, GCObject *o) {
+static void reallymarkobject (global_State *g, GCObject *o) {           // 根据不同对象类型进行染色
   switch (o->tt) {
     case LUA_VSHRSTR:
     case LUA_VLNGSTR: {
-      set2black(o);  /* nothing to visit */
+      set2black(o);  /* nothing to visit */                             // 字符串类型/无UpValue的UserData类型 直接设为黑色 因为没有引用其它GCObject对象
       break;
     }
     case LUA_VUPVAL: {
-      UpVal *uv = gco2upv(o);
+      UpVal *uv = gco2upv(o);                                           // function/thread/table 包括他们引用的UpValue类型 都属于可引用其它GCObject对象的集合类型 染色为灰色
       if (upisopen(uv))
         set2gray(uv);  /* open upvalues are kept gray */
       else
-        set2black(uv);  /* closed upvalues are visited here */
+        set2black(uv);  /* closed upvalues are visited here */          // 无upValue的UserData
       markvalue(g, uv->v.p);  /* mark its content */
       break;
     }
@@ -539,7 +539,7 @@ static void traversestrongtable (global_State *g, Table *h) {
 }
 
 
-static lu_mem traversetable (global_State *g, Table *h) {
+static lu_mem traversetable (global_State *g, Table *h) {   // 参考lgc.c // 深度优先算法
   const char *weakkey, *weakvalue;
   const TValue *mode = gfasttm(g, h->metatable, TM_MODE);
   TString *smode;
@@ -562,7 +562,7 @@ static lu_mem traversetable (global_State *g, Table *h) {
 }
 
 
-static int traverseudata (global_State *g, Udata *u) {
+static int traverseudata (global_State *g, Udata *u) {          // 对它内部引用的metatable与upvalue字段进行标记 UserData中属于GCObject的字段
   int i;
   markobjectN(g, u->metatable);  /* mark its metatable */
   for (i = 0; i < u->nuvalue; i++)
@@ -657,17 +657,17 @@ static int traversethread (global_State *g, lua_State *th) {
 /*
 ** traverse one gray object, turning it to black.
 */
-static lu_mem propagatemark (global_State *g) {
-  GCObject *o = g->gray;
+static lu_mem propagatemark (global_State *g) {                 // 第二阶段 颜色传播 // 其实就是对有子对象的类 继续染色
+  GCObject *o = g->gray;                                        
   nw2black(o);
-  g->gray = *getgclist(o);  /* remove from 'gray' list */
+  g->gray = *getgclist(o);  /* remove from 'gray' list */       // gray链表存储了所有灰色对象 // 先把这个灰色对象修改为黑色 然后根据不同数据类型调用不同的染色函数去对他所有的子对象进行染色
   switch (o->tt) {
-    case LUA_VTABLE: return traversetable(g, gco2t(o));
-    case LUA_VUSERDATA: return traverseudata(g, gco2u(o));
-    case LUA_VLCL: return traverseLclosure(g, gco2lcl(o));
+    case LUA_VTABLE: return traversetable(g, gco2t(o));         // 标记它的key与value值 会根据当前Table有没有被声明为弱键 弱值 弱键值会有不同的处理
+    case LUA_VUSERDATA: return traverseudata(g, gco2u(o));      
+    case LUA_VLCL: return traverseLclosure(g, gco2lcl(o));      // Lua闭包类型 闭包分为Lua闭包与C语言闭包 传播标记过程会对Lua闭包内部的Lua函数类型Proto与upvalue进行标记
     case LUA_VCCL: return traverseCclosure(g, gco2ccl(o));
-    case LUA_VPROTO: return traverseproto(g, gco2p(o));
-    case LUA_VTHREAD: return traversethread(g, gco2th(o));
+    case LUA_VPROTO: return traverseproto(g, gco2p(o));         // 即函数类型 类型定义中有一些字段是仅在信息调试的时候使用 在GC的时候无须对这部分这段进行处理 仅需要处理会引用其它GCObject对象的字段
+    case LUA_VTHREAD: return traversethread(g, gco2th(o));      // 线程或协程类型 会对当前运行函数栈中的对象进行标记 并对引用的upvalue进行标记 lua_State类型内部字段很多 但其中有调试用的 有仅引用全局的 需要被标记的只有id upvalue字段
     default: lua_assert(0); return 0;
   }
 }
@@ -1582,12 +1582,13 @@ static int sweepstep (lua_State *L, global_State *g,
 }
 
 
-static lu_mem singlestep (lua_State *L) {
+static lu_mem singlestep (lua_State *L) {                                   // 标记清除法
   global_State *g = G(L);
   lu_mem work;
   lua_assert(!g->gcstopem);  /* collector is not reentrant */
   g->gcstopem = 1;  /* no emergency collections while collecting */
   switch (g->gcstate) {
+    ///////////////////////////////////////////////////////////////////////// 标记
     case GCSpause: {
       restartcollection(g);
       g->gcstate = GCSpropagate;
@@ -1609,6 +1610,8 @@ static lu_mem singlestep (lua_State *L) {
       g->GCestimate = gettotalbytes(g);  /* first estimate */
       break;
     }
+
+    ///////////////////////////////////////////////////////////////////////// 清除
     case GCSswpallgc: {  /* sweep "regular" objects */
       work = sweepstep(L, g, GCSswpfinobj, &g->finobj);
       break;

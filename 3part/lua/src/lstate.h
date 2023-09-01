@@ -86,19 +86,29 @@ typedef struct CallInfo {
 /*
 ** `global state', shared by all threads of this state
 */
+/*
+global_State中并不是所有对象都需要被垃圾回收处理的 
+因为其中有些是长驻于内存中的数据: 
+1)它们在创建的时候调用了luaC_fix移出了allgc链表
+2)有些则是值类型对象
+3)指针类型但指向了初始就分配好地址的C语言函数 
+这些对象都是没有必要调用标记函数在标记阶段进行标记的
+*/
 typedef struct global_State {
-  stringtable strt;  /* hash table for strings */       // 全局TString二维数组 全局只有一个
+  stringtable strt;  /* hash table for strings */                           // 全局TString二维数组 全局只有一个 存储了当前用到的所有短字符串 // 需要回收
   lua_Alloc frealloc;  /* function to reallocate memory */
   void *ud;         /* auxiliary data to `frealloc' */
   lu_byte currentwhite;
   lu_byte gcstate;  /* state of garbage collector */
   int sweepstrgc;  /* position of sweep in `strt' */
-  GCObject *rootgc;  /* list of all collectable objects */
+
+  GCObject *rootgc;  /* list of all collectable objects */                  // GC执行过程中需要借助的辅助数据结构字段
   GCObject **sweepgc;  /* position of sweep in `rootgc' */
   GCObject *gray;  /* list of gray objects */
   GCObject *grayagain;  /* list of objects to be traversed atomically */
   GCObject *weak;  /* list of weak tables (to be cleared) */
   GCObject *tmudata;  /* last element of list of userdata to be GC */
+
   Mbuffer buff;  /* temporary buffer for string concatentation */
 
   lu_mem GCthreshold;
@@ -109,11 +119,11 @@ typedef struct global_State {
   int gcpause;  /* size of pause between successive GCs */
   int gcstepmul;  /* GC `granularity' */
   lua_CFunction panic;  /* to be called in unprotected errors */
-  TValue l_registry;
-  struct lua_State *mainthread;
-  UpVal uvhead;  /* head of double-linked list of all open upvalues */
-  struct Table *mt[NUM_TAGS];  /* metatables for basic types */
-  TString *tmname[TM_N];  /* array with tag-method names */
+  TValue l_registry;                                                        // 全局_G表 存储全局变量 // 需要回收
+  struct lua_State *mainthread;                                             // 当前运行的主线程 其中也引用着当前函数的运行堆栈 函数UpValue等信息 所以标记阶段也需要进行标记
+  UpVal uvhead;  /* head of double-linked list of all open upvalues */      // 协程链表   // 需要回收
+  struct Table *mt[NUM_TAGS];  /* metatables for basic types */             // 各种基础类型它们的元表(metatable)
+  TString *tmname[TM_N];  /* array with tag-method names */                 // 运行时使用的常量字符串 需要长驻内存 它们在创建的时候都调用了luaC_fix函数从rootgc链表移除 所以在清除阶段不会被处理 所以它们也没有必要在标记阶段进行标记
 } global_State;
 
 
