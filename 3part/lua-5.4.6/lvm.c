@@ -284,33 +284,33 @@ static int floatforloop (StkId ra) {
 ** if 'slot' is NULL, 't' is not a table; otherwise, 'slot' points to
 ** t[k] entry (which must be empty).
 */
-void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,
+void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,           // 根据某个键查询值最后要调用的函数
                       const TValue *slot) {
   int loop;  /* counter to avoid infinite loops */
   const TValue *tm;  /* metamethod */
-  for (loop = 0; loop < MAXTAGLOOP; loop++) {
+  for (loop = 0; loop < MAXTAGLOOP; loop++) {                                         // __index元方法查询 支持多层级 // 2000
     if (slot == NULL) {  /* 't' is not a table? */
       lua_assert(!ttistable(t));
-      tm = luaT_gettmbyobj(L, t, TM_INDEX);
+      tm = luaT_gettmbyobj(L, t, TM_INDEX);                                           // 除了table类型以外 其它数据类型也都可以声明元方法 此为非table类型变量调用自身的__index元方法
       if (l_unlikely(notm(tm)))
         luaG_typeerror(L, t, "index");  /* no metamethod */
       /* else will try the metamethod */
     }
     else {  /* 't' is a table */
       lua_assert(isempty(slot));
-      tm = fasttm(L, hvalue(t)->metatable, TM_INDEX);  /* table's metamethod */
+      tm = fasttm(L, hvalue(t)->metatable, TM_INDEX);  /* table's metamethod */       // 若为table类型变量 则查询它metatable中的__index字段 若没有设置metatable或metatable对应的__index变量为空 这里都将返回空 若有返回值 这里把它命名为tm
       if (tm == NULL) {  /* no metamethod? */
         setnilvalue(s2v(val));  /* result is nil */
         return;
       }
       /* else will try the metamethod */
     }
-    if (ttisfunction(tm)) {  /* is metamethod a function? */
+    if (ttisfunction(tm)) {  /* is metamethod a function? */                          // 若tm为函数 则调用该函数
       luaT_callTMres(L, tm, t, key, val);  /* call it */
       return;
     }
     t = tm;  /* else try to access 'tm[key]' */
-    if (luaV_fastget(L, t, key, slot, luaH_get)) {  /* fast track? */
+    if (luaV_fastget(L, t, key, slot, luaH_get)) {  /* fast track? */                 // 否则tm为table 则用同样的key值从tm这个table中取得数据
       setobj2s(L, val, slot);  /* done */
       return;
     }
@@ -335,7 +335,7 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
     if (slot != NULL) {  /* is 't' a table? */
       Table *h = hvalue(t);  /* save 't' table */
       lua_assert(isempty(slot));  /* slot must be empty */
-      tm = fasttm(L, h->metatable, TM_NEWINDEX);  /* get metamethod */
+      tm = fasttm(L, h->metatable, TM_NEWINDEX);  /* get metamethod */                // 获取table的__newindex字段 命名为tm
       if (tm == NULL) {  /* no metamethod? */
         luaH_finishset(L, h, key, slot, val);  /* set new value */
         invalidateTMcache(h);
@@ -350,12 +350,12 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
         luaG_typeerror(L, t, "index");
     }
     /* try the metamethod */
-    if (ttisfunction(tm)) {
+    if (ttisfunction(tm)) {                                                           // 若tm为函数 则调用
       luaT_callTM(L, tm, t, key, val);
       return;
     }
     t = tm;  /* else repeat assignment over 'tm' */
-    if (luaV_fastget(L, t, key, slot, luaH_get)) {
+    if (luaV_fastget(L, t, key, slot, luaH_get)) {                                    // 若tm为table 则把tm作为新的t参数 重复流程 重新尝试查询t中是否有需要的key值
       luaV_finishfastset(L, t, slot, val);
       return;  /* done */
     }

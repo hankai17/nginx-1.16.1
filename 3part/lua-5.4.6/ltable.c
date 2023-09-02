@@ -921,7 +921,7 @@ static unsigned int binsearch (const TValue *array, unsigned int i,
 ** (In those cases, the boundary is not inside the array part, and
 ** therefore cannot be used as a new limit.)
 */
-lua_Unsigned luaH_getn (Table *t) {
+lua_Unsigned luaH_getn (Table *t) {                                     // table取长度操作 #t
   unsigned int limit = t->alimit;
   if (limit > 0 && isempty(&t->array[limit - 1])) {  /* (1)? */
     /* there must be a boundary before 'limit' */

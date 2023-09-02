@@ -485,7 +485,7 @@ static int traverseephemeron (global_State *g, Table *h, int inv) {
   unsigned int asize = luaH_realasize(h);
   unsigned int nsize = sizenode(h);
   /* traverse array part */
-  for (i = 0; i < asize; i++) {
+  for (i = 0; i < asize; i++) {                                                   // 标记vector值
     if (valiswhite(&h->array[i])) {
       marked = 1;
       reallymarkobject(g, gcvalue(&h->array[i]));
@@ -502,7 +502,7 @@ static int traverseephemeron (global_State *g, Table *h, int inv) {
       if (valiswhite(gval(n)))  /* value not marked yet? */
         hasww = 1;  /* white-white entry */
     }
-    else if (valiswhite(gval(n))) {  /* value not marked yet? */
+    else if (valiswhite(gval(n))) {  /* value not marked yet? */                  // 标记hashtable值
       marked = 1;
       reallymarkobject(g, gcvalue(gval(n)));  /* mark it now */
     }
@@ -525,8 +525,8 @@ static void traversestrongtable (global_State *g, Table *h) {
   unsigned int i;
   unsigned int asize = luaH_realasize(h);
   for (i = 0; i < asize; i++)  /* traverse array part */
-    markvalue(g, &h->array[i]);
-  for (n = gnode(h, 0); n < limit; n++) {  /* traverse hash part */
+    markvalue(g, &h->array[i]);                                           // 标记数组部分value
+  for (n = gnode(h, 0); n < limit; n++) {  /* traverse hash part */       // 标记哈希部分key value
     if (isempty(gval(n)))  /* entry is empty? */
       clearkey(n);  /* clear its key */
     else {
@@ -547,15 +547,15 @@ static lu_mem traversetable (global_State *g, Table *h) {
       (cast_void(weakkey = strchr(svalue(mode), 'k')),
        cast_void(weakvalue = strchr(svalue(mode), 'v')),
        (weakkey || weakvalue))) {  /* is really weak? */
-    if (!weakkey)  /* strong keys? */
-      traverseweakvalue(g, h);
-    else if (!weakvalue)  /* strong values? */
+    if (!weakkey)  /* strong keys? */                               // 值采用弱引用 而键还是强引用
+      traverseweakvalue(g, h);                                      // 需要标记键
+    else if (!weakvalue)  /* strong values? */                      // 只需要标记值而不需要标记键
       traverseephemeron(g, h, 0);
     else  /* all weak */
-      linkgclist(h, g->allweak);  /* nothing to traverse now */
+      linkgclist(h, g->allweak);  /* nothing to traverse now */     // 键与值都为弱引用 直接把当前这个table链接到待gc垃圾回收的链表中 后面若没有其它对象标记这个表内的元素则将被全部清除
   }
   else  /* not weak */
-    traversestrongtable(g, h);
+    traversestrongtable(g, h);                                      // 当没有设置__mode的时候 代表当前这个table的键值都为强引用 所以在标记阶段只需要正常地把table自身能访问到的元素全部标记就可以
   return 1 + h->alimit + 2 * allocsizenode(h);
 }
 
@@ -902,20 +902,20 @@ static void dothecall (lua_State *L, void *ud) {
 }
 
 
-static void GCTM (lua_State *L) {
+static void GCTM (lua_State *L) {                                             // Lua在销毁清除对象的时候调用
   global_State *g = G(L);
   const TValue *tm;
   TValue v;
   lua_assert(!g->gcemergency);
   setgcovalue(L, &v, udata2finalize(g));
-  tm = luaT_gettmbyobj(L, &v, TM_GC);
+  tm = luaT_gettmbyobj(L, &v, TM_GC);                                         // 获取__gc元方法
   if (!notm(tm)) {  /* is there a finalizer? */
     int status;
     lu_byte oldah = L->allowhook;
     int oldgcstp  = g->gcstp;
     g->gcstp |= GCSTPGC;  /* avoid GC steps */
     L->allowhook = 0;  /* stop debug hooks during GC metamethod */
-    setobj2s(L, L->top.p++, tm);  /* push finalizer... */
+    setobj2s(L, L->top.p++, tm);  /* push finalizer... */                     // 若定义了__gc元方法 则调此函数
     setobj2s(L, L->top.p++, &v);  /* ... and its argument */
     L->ci->callstatus |= CIST_FIN;  /* will run a finalizer */
     status = luaD_pcall(L, dothecall, NULL, savestack(L, L->top.p - 2), 0);
