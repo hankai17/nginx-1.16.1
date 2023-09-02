@@ -120,17 +120,17 @@ void luaS_clearcache (global_State *g) {
 /*
 ** Initialize the string table and the string cache
 */
-void luaS_init (lua_State *L) {
+void luaS_init (lua_State *L) {                                               // lua初始化的时候
   global_State *g = G(L);
   int i, j;
   stringtable *tb = &G(L)->strt;
-  tb->hash = luaM_newvector(L, MINSTRTABSIZE, TString*);
+  tb->hash = luaM_newvector(L, MINSTRTABSIZE, TString*);                      // 会初始化stringtable // 128
   tablerehash(tb->hash, 0, MINSTRTABSIZE);  /* clear array */
   tb->size = MINSTRTABSIZE;
   /* pre-create memory-error message */
   g->memerrmsg = luaS_newliteral(L, MEMERRMSG);
   luaC_fix(L, obj2gco(g->memerrmsg));  /* it should never be collected */
-  for (i = 0; i < STRCACHE_N; i++)  /* fill cache with valid strings */
+  for (i = 0; i < STRCACHE_N; i++)  /* fill cache with valid strings */       // 初始化strcache缓存  // 通过地址判断字符串是否已经在缓存中 // 大小是一个TString[53][2]的一个二维数组
     for (j = 0; j < STRCACHE_M; j++)
       g->strcache[i][j] = g->memerrmsg;
 }
@@ -140,15 +140,15 @@ void luaS_init (lua_State *L) {
 /*
 ** creates a new string object
 */
-static TString *createstrobj (lua_State *L, size_t l, int tag, unsigned int h) {
+static TString *createstrobj (lua_State *L, size_t l, int tag, unsigned int h) {      // eg: 创建出来一个type tag为LUA_VSHRSTR的GCObject对象
   TString *ts;
   GCObject *o;
   size_t totalsize;  /* total size of TString object */
   totalsize = sizelstring(l);
-  o = luaC_newobj(L, tag, totalsize);
+  o = luaC_newobj(L, tag, totalsize);                                                 // 复合对象可以强转为obj 因为复合对象的头就是obj
   ts = gco2ts(o);
   ts->hash = h;
-  ts->extra = 0;
+  ts->extra = 0;                                                                      // 并没有直接在创建时计算出来哈希值 而是通过extra作为延迟处理标记
   getstr(ts)[l] = '\0';  /* ending 0 */
   return ts;
 }
@@ -190,10 +190,10 @@ static TString *internshrstr (lua_State *L, const char *str, size_t l) {
   global_State *g = G(L);
   stringtable *tb = &g->strt;
   unsigned int h = luaS_hash(str, l, g->seed);
-  TString **list = &tb->hash[lmod(h, tb->size)];
+  TString **list = &tb->hash[lmod(h, tb->size)];                                  // hash
   lua_assert(str != NULL);  /* otherwise 'memcmp'/'memcpy' are undefined */
   for (ts = *list; ts != NULL; ts = ts->u.hnext) {
-    if (l == ts->shrlen && (memcmp(str, getstr(ts), l * sizeof(char)) == 0)) {
+    if (l == ts->shrlen && (memcmp(str, getstr(ts), l * sizeof(char)) == 0)) {    // 存在, 复用
       /* found! */
       if (isdead(g, ts))  /* dead (but not collected yet)? */
         changewhite(ts);  /* resurrect it */
@@ -202,13 +202,13 @@ static TString *internshrstr (lua_State *L, const char *str, size_t l) {
   }
   /* else must create a new string */
   if (tb->nuse >= tb->size) {  /* need to grow string table? */
-    growstrtab(L, tb);
+    growstrtab(L, tb);                                                            // 对stringtable扩容 使容量变为原来2倍 // 并对原来的数据进行重新哈希!!!!!!
     list = &tb->hash[lmod(h, tb->size)];  /* rehash with new size */
   }
   ts = createstrobj(L, l, LUA_VSHRSTR, h);
   memcpy(getstr(ts), str, l * sizeof(char));
   ts->shrlen = cast_byte(l);
-  ts->u.hnext = *list;
+  ts->u.hnext = *list;                                                            // 挂队头
   *list = ts;
   tb->nuse++;
   return ts;
@@ -219,7 +219,7 @@ static TString *internshrstr (lua_State *L, const char *str, size_t l) {
 ** new string (with explicit length)
 */
 TString *luaS_newlstr (lua_State *L, const char *str, size_t l) {
-  if (l <= LUAI_MAXSHORTLEN)  /* short string? */
+  if (l <= LUAI_MAXSHORTLEN)  /* short string? */                                 // 字符串长度小于等于LUAI_MAXSHORTLEN（40） 短字符串
     return internshrstr(L, str, l);
   else {
     TString *ts;
@@ -238,16 +238,16 @@ TString *luaS_newlstr (lua_State *L, const char *str, size_t l) {
 ** only zero-terminated strings, so it is safe to use 'strcmp' to
 ** check hits.
 */
-TString *luaS_new (lua_State *L, const char *str) {
+TString *luaS_new (lua_State *L, const char *str) {           // 地址cache 每个桶里最多放两个string // 可以存放长/短字符串
   unsigned int i = point2uint(str) % STRCACHE_N;  /* hash */
   int j;
   TString **p = G(L)->strcache[i];
-  for (j = 0; j < STRCACHE_M; j++) {
+  for (j = 0; j < STRCACHE_M; j++) {                          // 2
     if (strcmp(str, getstr(p[j])) == 0)  /* hit? */
       return p[j];  /* that is it */
   }
   /* normal route */
-  for (j = STRCACHE_M - 1; j > 0; j--)
+  for (j = STRCACHE_M - 1; j > 0; j--)                        // 2
     p[j] = p[j - 1];  /* move out last element */
   /* new element is first in the list */
   p[0] = luaS_newlstr(L, str, strlen(str));

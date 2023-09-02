@@ -152,11 +152,11 @@ struct lua_longjmp;  /* defined in ldo.c */
 #define KGC_GEN		1	/* generational gc */
 
 
-typedef struct stringtable {
-  TString **hash;
+typedef struct stringtable {                // 用来缓存短字符串
+  TString **hash;                           // 指向TString二维数组
   int nuse;  /* number of elements */
-  int size;
-} stringtable;
+  int size;                                 // 容量
+} stringtable;                              // 通过判断nuse与size的比例 判断hash数组是否动态扩大容量或者缩小容量
 
 
 /*
@@ -258,7 +258,7 @@ typedef struct global_State {
   l_mem GCdebt;  /* bytes allocated not yet compensated by the collector */
   lu_mem GCestimate;  /* an estimate of the non-garbage memory in use */
   lu_mem lastatomic;  /* see function 'genstep' in file 'lgc.c' */
-  stringtable strt;  /* hash table for strings */
+  stringtable strt;  /* hash table for strings */                                       // 短字符串hash表
   TValue l_registry;
   TValue nilvalue;  /* a nil value */
   unsigned int seed;  /* randomized seed for hashes */
@@ -297,7 +297,7 @@ typedef struct global_State {
   TString *memerrmsg;  /* message for memory-allocation errors */
   TString *tmname[TM_N];  /* array with tag-method names */
   struct Table *mt[LUA_NUMTYPES];  /* metatables for basic types */
-  TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */
+  TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */            //  通过地址判断字符串是否已经在缓存中
   lua_WarnFunction warnf;  /* warning function */
   void *ud_warn;         /* auxiliary data to 'warnf' */
 } global_State;

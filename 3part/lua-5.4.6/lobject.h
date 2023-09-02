@@ -46,7 +46,7 @@
 /*
 ** Union of all Lua values
 */
-typedef union Value {
+typedef union Value {                                                   // 2 Value: gc|obj/p/f/i/n/b      // 6种类型之一 5种基本类型 1种复合类型
   struct GCObject *gc;    /* collectable objects */
   void *p;         /* light userdata */
   lua_CFunction f; /* light C functions */
@@ -64,7 +64,7 @@ typedef union Value {
 
 #define TValuefields	Value value_; lu_byte tt_
 
-typedef struct TValue {
+typedef struct TValue {                                                 // 1 TValue = Value(UNION) + type
   TValuefields;
 } TValue;
 
@@ -285,7 +285,7 @@ typedef union {
 ** Common Header for all collectable objects (in macro form, to be
 ** included in other objects)
 */
-#define CommonHeader	struct GCObject *next; lu_byte tt; lu_byte marked
+#define CommonHeader	struct GCObject *next; lu_byte tt; lu_byte marked               // 复合对象的头部三剑客
 
 
 /* Common type for all collectable objects */
@@ -385,12 +385,12 @@ typedef struct GCObject {
 */
 typedef struct TString {
   CommonHeader;
-  lu_byte extra;  /* reserved words for short strings; "has hash" for longs */
-  lu_byte shrlen;  /* length for short strings */
+  lu_byte extra;  /* reserved words for short strings; "has hash" for longs */      // 否已计算过哈希值
+  lu_byte shrlen;  /* length for short strings */                                   // 短字符串的长度  0~255
   unsigned int hash;
   union {
-    size_t lnglen;  /* length for long strings */
-    struct TString *hnext;  /* linked list for hash table */
+    size_t lnglen;  /* length for long strings */                                   // 在长字符串中使用
+    struct TString *hnext;  /* linked list for hash table */                        // 开放式寻址的哈希表 u在短字符串中使用hnext字段 用于指向缓冲短字符串的哈希表中的下一个元素
   } u;
   char contents[1];
 } TString;
