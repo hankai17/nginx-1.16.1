@@ -148,7 +148,7 @@ static int l_hashfloat (lua_Number n) {
 ** returns the 'main' position of an element in a table (that is,
 ** the index of its hash value).
 */
-static Node *mainpositionTV (const Table *t, const TValue *key) {
+static Node *mainpositionTV (const Table *t, const TValue *key) {     // 算key的哈希值
   switch (ttypetag(key)) {
     case LUA_VNUMINT: {
       lua_Integer i = ivalue(key);
@@ -477,7 +477,7 @@ static int numusehash (const Table *t, unsigned int *nums, unsigned int *pna) {
 ** comparison ensures that the shift in the second one does not
 ** overflow.
 */
-static void setnodevector (lua_State *L, Table *t, unsigned int size) {
+static void setnodevector (lua_State *L, Table *t, unsigned int size) {     // 初始化hash表
   if (size == 0) {  /* no elements to hash part? */
     t->node = cast(Node *, dummynode);  /* use common 'dummynode' */
     t->lsizenode = 0;
@@ -485,10 +485,11 @@ static void setnodevector (lua_State *L, Table *t, unsigned int size) {
   }
   else {
     int i;
-    int lsize = luaO_ceillog2(size);
+    int lsize = luaO_ceillog2(size);                                        // size = 5  lsize = 3
     if (lsize > MAXHBITS || (1u << lsize) > MAXHSIZE)
       luaG_runerror(L, "table overflow");
-    size = twoto(lsize);
+    size = twoto(lsize);                                                    // size = 8 // hashtable: vector[0~7] // 之所以是一个vector 是因为此hashtable用的是开放寻址法解决冲突
+                                                                            // 链地址法的缺点是需要额外的空间 优点是冲突后在链表上的增删操作会比较方便快捷的
     t->node = luaM_newvector(L, size, Node);
     for (i = 0; i < cast_int(size); i++) {
       Node *n = gnode(t, i);
@@ -497,7 +498,7 @@ static void setnodevector (lua_State *L, Table *t, unsigned int size) {
       setempty(gval(n));
     }
     t->lsizenode = cast_byte(lsize);
-    t->lastfree = gnode(t, size);  /* all positions are free */
+    t->lastfree = gnode(t, size);  /* all positions are free */             // lastfree会指向最后的位置 vector[7]
   }
 }
 
@@ -603,13 +604,13 @@ static void rehash (lua_State *L, Table *t, const TValue *ek) {
   int totaluse;
   for (i = 0; i <= MAXABITS; i++) nums[i] = 0;  /* reset counts */
   setlimittosize(t);
-  na = numusearray(t, nums);  /* count keys in array part */
+  na = numusearray(t, nums);  /* count keys in array part */                  // 1数组中所有key为整数的结点个数
   totaluse = na;  /* all those keys are integer keys */
-  totaluse += numusehash(t, nums, &na);  /* count keys in hash part */
+  totaluse += numusehash(t, nums, &na);  /* count keys in hash part */        // 1计算所有key为整数的结点个数
   /* count extra key */
   if (ttisinteger(ek))
     na += countint(ivalue(ek), nums);
-  totaluse++;
+  totaluse++;                                                                 // 1预留多一个位置给当前将要插入的元素
   /* compute new size for array part */
   asize = computesizes(nums, &na);
   /* resize the table to new computed sizes */
@@ -628,7 +629,7 @@ Table *luaH_new (lua_State *L) {
   Table *t = gco2t(o);
   t->metatable = NULL;
   t->flags = cast_byte(maskflags);  /* table has no metamethod fields */
-  t->array = NULL;
+  t->array = NULL;                                                        // 声明空表 不占用内存 没预分配空间
   t->alimit = 0;
   setnodevector(L, t, 0);
   return t;
@@ -679,12 +680,12 @@ void luaH_newkey (lua_State *L, Table *t, const TValue *key, TValue *value) {
   }
   if (ttisnil(value))
     return;  /* do not insert nil values */
-  mp = mainpositionTV(t, key);
+  mp = mainpositionTV(t, key);                                                    // 求key的主位置 所谓主位置就是求一次hash即可
   if (!isempty(gval(mp)) || isdummy(t)) {  /* main position is taken? */
     Node *othern;
-    Node *f = getfreepos(t);  /* get a free place */
+    Node *f = getfreepos(t);  /* get a free place */                              // lastfree 是否也被占用了
     if (f == NULL) {  /* cannot find a free place? */
-      rehash(L, t, key);  /* grow table */
+      rehash(L, t, key);  /* grow table */                                        // vector满了 则扩容 // 扩容两倍 且所有元素重新rehash!!!
       /* whatever called 'newkey' takes care of TM cache */
       luaH_set(L, t, key, value);  /* insert key into grown table */
       return;
@@ -810,7 +811,7 @@ const TValue *luaH_get (Table *t, const TValue *key) {
 */
 void luaH_finishset (lua_State *L, Table *t, const TValue *key,
                                    const TValue *slot, TValue *value) {
-  if (isabstkey(slot))
+  if (isabstkey(slot))                                                        // slot为空
     luaH_newkey(L, t, key, value);
   else
     setobj2t(L, cast(TValue *, slot), value);
@@ -822,7 +823,7 @@ void luaH_finishset (lua_State *L, Table *t, const TValue *key,
 ** barrier and invalidate the TM cache.
 */
 void luaH_set (lua_State *L, Table *t, const TValue *key, TValue *value) {
-  const TValue *slot = luaH_get(t, key);
+  const TValue *slot = luaH_get(t, key);                                      // 特殊情况时: vector满了 遍历数组全部位置仍然找不到空位 slot则为空
   luaH_finishset(L, t, key, slot, value);
 }
 

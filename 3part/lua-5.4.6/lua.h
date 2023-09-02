@@ -66,7 +66,7 @@ typedef struct lua_State lua_State;
 #define LUA_TBOOLEAN		1
 #define LUA_TLIGHTUSERDATA	2
 #define LUA_TNUMBER		3
-#define LUA_TSTRING		4
+#define LUA_TSTRING		4                       //  下面的类型都需要在type字段中标记为可回收
 #define LUA_TTABLE		5
 #define LUA_TFUNCTION		6
 #define LUA_TUSERDATA		7
