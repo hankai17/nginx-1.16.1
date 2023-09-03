@@ -312,9 +312,9 @@ LUALIB_API int luaL_newmetatable (lua_State *L, const char *tname) {
   if (luaL_getmetatable(L, tname) != LUA_TNIL)  /* name already in use? */
     return 0;  /* leave previous value on top, but return 0 */
   lua_pop(L, 1);
-  lua_createtable(L, 0, 2);  /* create metatable */
+  lua_createtable(L, 0, 2);  /* create metatable */                             // 在全局环境中创建一个元表
   lua_pushstring(L, tname);
-  lua_setfield(L, -2, "__name");  /* metatable.__name = tname */
+  lua_setfield(L, -2, "__name");  /* metatable.__name = tname */                // 设置该元表_name为参数中的tname // 设置栈顶元素的metatable为叫指定__name的metatable
   lua_pushvalue(L, -1);
   lua_setfield(L, LUA_REGISTRYINDEX, tname);  /* registry.name = metatable */
   return 1;

@@ -799,7 +799,7 @@ LUA_API int lua_getmetatable (lua_State *L, int objindex) {
 }
 
 
-LUA_API int lua_getiuservalue (lua_State *L, int idx, int n) {
+LUA_API int lua_getiuservalue (lua_State *L, int idx, int n) {    // 获取UValue数组元素
   TValue *o;
   int t;
   lua_lock(L);
@@ -970,7 +970,7 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
 }
 
 
-LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {
+LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {  // 设置UValue数组元素
   TValue *o;
   int res;
   lua_lock(L);
@@ -1340,7 +1340,7 @@ void lua_warning (lua_State *L, const char *msg, int tocont) {
 
 
 
-LUA_API void *lua_newuserdatauv (lua_State *L, size_t size, int nuvalue) {
+LUA_API void *lua_newuserdatauv (lua_State *L, size_t size, int nuvalue) {    // 创建一个UserData对象并插入到Lua堆栈顶部
   Udata *u;
   lua_lock(L);
   api_check(L, 0 <= nuvalue && nuvalue < USHRT_MAX, "invalid value");

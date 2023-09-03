@@ -255,7 +255,7 @@ TString *luaS_new (lua_State *L, const char *str) {           // 地址cache 每
 }
 
 
-Udata *luaS_newudata (lua_State *L, size_t s, int nuvalue) {
+Udata *luaS_newudata (lua_State *L, size_t s, int nuvalue) {  // Udata的创建 数据在栈顶
   Udata *u;
   int i;
   GCObject *o;

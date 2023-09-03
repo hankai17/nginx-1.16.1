@@ -458,13 +458,13 @@ typedef union UValue {
 ** Header for userdata with user values;
 ** memory area follows the end of this structure.
 */
-typedef struct Udata {
+typedef struct Udata {                                          // GCUnion
   CommonHeader;
   unsigned short nuvalue;  /* number of user values */
   size_t len;  /* number of bytes */
-  struct Table *metatable;
+  struct Table *metatable;                                      // table.__name 判断这个UserData是否是我们需
   GCObject *gclist;
-  UValue uv[1];  /* user values */
+  UValue uv[1];  /* user values */                              // C语言结构体占用内存 // 同时也可以额外存储多组数据
 } Udata;
 
 
