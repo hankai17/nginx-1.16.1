@@ -53,10 +53,10 @@ static int auxresume (lua_State *L, lua_State *co, int narg) {
 }
 
 
-static int luaB_coresume (lua_State *L) {
+static int luaB_coresume (lua_State *L) {               // 协程恢复
   lua_State *co = getco(L);
   int r;
-  r = auxresume(L, co, lua_gettop(L) - 1);
+  r = auxresume(L, co, lua_gettop(L) - 1);              // lua_resume
   if (l_unlikely(r < 0)) {
     lua_pushboolean(L, 0);
     lua_insert(L, -2);
@@ -92,11 +92,11 @@ static int luaB_auxwrap (lua_State *L) {
 }
 
 
-static int luaB_cocreate (lua_State *L) {
+static int luaB_cocreate (lua_State *L) {                 // 协程创建
   lua_State *NL;
   luaL_checktype(L, 1, LUA_TFUNCTION);
   NL = lua_newthread(L);
-  lua_pushvalue(L, 1);  /* move function to top */
+  lua_pushvalue(L, 1);  /* move function to top */        // 把参数中的函数设置到这个新创建的thread状态机的运行堆栈上 协程创建完成后默认处于挂起态
   lua_xmove(L, NL, 1);  /* move function from L to NL */
   return 1;
 }
@@ -114,10 +114,10 @@ static int luaB_yield (lua_State *L) {
 }
 
 
-#define COS_RUN		0
+#define COS_RUN		0       // run
 #define COS_DEAD	1
-#define COS_YIELD	2
-#define COS_NORM	3
+#define COS_YIELD	2       // sleep
+#define COS_NORM	3       // ready
 
 
 static const char *const statname[] =

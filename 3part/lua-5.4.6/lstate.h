@@ -306,24 +306,24 @@ typedef struct global_State {
 /*
 ** 'per thread' state
 */
-struct lua_State {
+struct lua_State {                                                                      // 主线程或某个协程 的函数的运行与状态
   CommonHeader;
   lu_byte status;
   lu_byte allowhook;
   unsigned short nci;  /* number of items in 'ci' list */
   StkIdRel top;  /* first free slot in the stack */
-  global_State *l_G;
-  CallInfo *ci;  /* call info for current function */
+  global_State *l_G;                                                                    // 指向一个全局状态结构体 所以Lua中Thread可以共享到这些全局数据
+  CallInfo *ci;  /* call info for current function */                                   // 运行函数信息相关
   StkIdRel stack_last;  /* end of stack (last element + 1) */
-  StkIdRel stack;  /* stack base */
+  StkIdRel stack;  /* stack base */                                                     // 记录堆栈的头和尾部指针
   UpVal *openupval;  /* list of open upvalues in this stack */                          // 所有open态的UpVal都链接在这个链表当中 前插法
-  StkIdRel tbclist;  /* list of to-be-closed variables */
-  GCObject *gclist;
+  StkIdRel tbclist;  /* list of to-be-closed variables */                               // 函数运行完成后准备关闭的函数
+  GCObject *gclist;                                                                     // gc回收算法链接到某个回收队列
   struct lua_State *twups;  /* list of threads with open upvalues */
-  struct lua_longjmp *errorJmp;  /* current error recover point */
+  struct lua_longjmp *errorJmp;  /* current error recover point */                      // 常用于保护模式下运行某个函数 若发生错误的时候会调用跳转指令跳转到这个位置
   CallInfo base_ci;  /* CallInfo for first level (C calling Lua) */
-  volatile lua_Hook hook;
-  ptrdiff_t errfunc;  /* current error handling function (stack index) */
+  volatile lua_Hook hook;                                                               // 函数勾子
+  ptrdiff_t errfunc;  /* current error handling function (stack index) */               // 若有设置此错误回调函数 则运行发生错误后会调用这个函数 通常用于输出异常信息
   l_uint32 nCcalls;  /* number of nested (non-yieldable | C)  calls */
   int oldpc;  /* last pc traced */
   int basehookcount;
