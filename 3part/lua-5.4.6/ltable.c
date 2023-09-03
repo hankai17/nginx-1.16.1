@@ -426,7 +426,7 @@ static int countint (lua_Integer key, unsigned int *nums) {
 ** number of keys that will go into corresponding slice and return
 ** total number of non-nil keys.
 */
-static unsigned int numusearray (const Table *t, unsigned int *nums) {
+static unsigned int numusearray (const Table *t, unsigned int *nums) {    // 统计的是在2^(i − 1) 2^i 的key的数量
   int lg;
   unsigned int ttlg;  /* 2^lg */
   unsigned int ause = 0;  /* summation of 'nums' */
@@ -602,19 +602,21 @@ static void rehash (lua_State *L, Table *t, const TValue *ek) {
   unsigned int nums[MAXABITS + 1];
   int i;
   int totaluse;
-  for (i = 0; i <= MAXABITS; i++) nums[i] = 0;  /* reset counts */
+  for (i = 0; i <= MAXABITS; i++) nums[i] = 0;  /* reset counts */            // nums[31]
   setlimittosize(t);
   na = numusearray(t, nums);  /* count keys in array part */                  // 1数组中所有key为整数的结点个数
   totaluse = na;  /* all those keys are integer keys */
-  totaluse += numusehash(t, nums, &na);  /* count keys in hash part */        // 1计算所有key为整数的结点个数
+  totaluse += numusehash(t, nums, &na);  /* count keys in hash part */        // 1计算所有key为整数的结点个数 以及总个数
   /* count extra key */
   if (ttisinteger(ek))
-    na += countint(ivalue(ek), nums);
+    na += countint(ivalue(ek), nums);                                         // 对于可以加入数组部分的键 则会加到更新nums并累加na
   totaluse++;                                                                 // 1预留多一个位置给当前将要插入的元素
+                                                                              ///////////////////////////////////////// 此时totaluse是所有元素总个数
   /* compute new size for array part */
-  asize = computesizes(nums, &na);
+  asize = computesizes(nums, &na);                                            // 在不低于50%利用率下 数组所应该维持的空间大小 // 最终数组的大小(一定为2的次幂)
+                                                                              // na: 最终归入数组部分的key的个数
   /* resize the table to new computed sizes */
-  luaH_resize(L, t, asize, totaluse - na);
+  luaH_resize(L, t, asize, totaluse - na);                                    // 将不能放入数组的键值塞入哈希表
 }
 
 
@@ -789,7 +791,7 @@ const TValue *luaH_getstr (Table *t, TString *key) {
 const TValue *luaH_get (Table *t, const TValue *key) {
   switch (ttypetag(key)) {
     case LUA_VSHRSTR: return luaH_getshortstr(t, tsvalue(key));
-    case LUA_VNUMINT: return luaH_getint(t, ivalue(key));
+    case LUA_VNUMINT: return luaH_getint(t, ivalue(key));                         // 先填数组 数组不满足则放到hash
     case LUA_VNIL: return &absentkey;
     case LUA_VNUMFLT: {
       lua_Integer k;
@@ -829,7 +831,7 @@ void luaH_set (lua_State *L, Table *t, const TValue *key, TValue *value) {
 
 
 void luaH_setint (lua_State *L, Table *t, lua_Integer key, TValue *value) {
-  const TValue *p = luaH_getint(t, key);
+  const TValue *p = luaH_getint(t, key);                                      // 先填数组 数组不满足则放到hash
   if (isabstkey(p)) {
     TValue k;
     setivalue(&k, key);
