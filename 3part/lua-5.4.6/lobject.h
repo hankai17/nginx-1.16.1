@@ -549,28 +549,28 @@ typedef struct AbsLineInfo {
 /*
 ** Function Prototypes
 */
-typedef struct Proto {
+typedef struct Proto {                                                              // Lua函数的定义 // 非c中函数指针那么简单
   CommonHeader;
-  lu_byte numparams;  /* number of fixed (named) parameters */
+  lu_byte numparams;  /* number of fixed (named) parameters */                      // 函数参数的数量
   lu_byte is_vararg;
-  lu_byte maxstacksize;  /* number of registers needed by this function */
-  int sizeupvalues;  /* size of 'upvalues' */
-  int sizek;  /* size of 'k' */
+  lu_byte maxstacksize;  /* number of registers needed by this function */          // 所需要的寄存器数量
+  int sizeupvalues;  /* size of 'upvalues' */                                       // UpValue的数量与描述(作用域)
+  int sizek;  /* size of 'k' */                                                     // 常量的数量与常量所存储在的数组
   int sizecode;
-  int sizelineinfo;
+  int sizelineinfo;                                                                 // 用于调试 // 存储函数内各条指令码的地址偏移量 若偏移值过大 则会同时记录该指令的绝对偏移值
   int sizep;  /* size of 'p' */
   int sizelocvars;
   int sizeabslineinfo;  /* size of 'abslineinfo' */
-  int linedefined;  /* debug information  */
+  int linedefined;  /* debug information  */                                        // 函数的开始与结束的行
   int lastlinedefined;  /* debug information  */
-  TValue *k;  /* constants used by the function */
-  Instruction *code;  /* opcodes */
-  struct Proto **p;  /* functions defined inside the function */
-  Upvaldesc *upvalues;  /* upvalue information */
+  TValue *k;  /* constants used by the function */                                  // 常量的数量与常量所存储在的数组
+  Instruction *code;  /* opcodes */                                                 // 该函数所调用的所有指令码数量和指令码数组 函数执行的时候就是按顺序跑这些的指令码
+  struct Proto **p;  /* functions defined inside the function */                    // 函数内部又定义了的其它函数 所以说Lua的函数支持嵌套定义 // 比c闭包强大之处
+  Upvaldesc *upvalues;  /* upvalue information */                                   // 指向全局lua_State结构体中的openupvalue的某个level层的UpVal // 全局upval为前插法 所以自然而然的其之后的upval才可见
   ls_byte *lineinfo;  /* information about source lines (debug information) */
   AbsLineInfo *abslineinfo;  /* idem */
-  LocVar *locvars;  /* information about local variables (debug information) */
-  TString  *source;  /* used for debug information */
+  LocVar *locvars;  /* information about local variables (debug information) */     // 局部变量的描述
+  TString  *source;  /* used for debug information */                               // 该函数的源代码的字符串表示
   GCObject *gclist;
 } Proto;
 
@@ -636,8 +636,8 @@ typedef struct UpVal {
     struct {  /* (when open) */
       struct UpVal *next;  /* linked list */
       struct UpVal **previous;
-    } open;
-    TValue value;  /* the value (when closed) */
+    } open;                                                                     // open态时生效
+    TValue value;  /* the value (when closed) */                                // close态时生效 // 函数在返回后会切换到close状态 // luaF_closeupval
   } u;
 } UpVal;
 
@@ -645,15 +645,17 @@ typedef struct UpVal {
 
 #define ClosureHeader \
 	CommonHeader; lu_byte nupvalues; GCObject *gclist
+	                                                        // gclist: 在垃圾清除的时候 要清除包括upvalues在内的一系列可回收对象
 
-typedef struct CClosure {
+                                                            // 闭包 = funtion + upvalue(捕获的参数)
+typedef struct CClosure {                                   // C闭包
   ClosureHeader;
   lua_CFunction f;
   TValue upvalue[1];  /* list of upvalues */
 } CClosure;
 
 
-typedef struct LClosure {
+typedef struct LClosure {                                   // Lua闭包 // Lua闭包会比C语言闭包更加强大 Lua闭包支持多层嵌套（闭包嵌套闭包） 并能更好地管理复用UpValue
   ClosureHeader;
   struct Proto *p;
   UpVal *upvals[1];  /* list of upvalues */

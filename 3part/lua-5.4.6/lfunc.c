@@ -62,7 +62,7 @@ void luaF_initupvals (lua_State *L, LClosure *cl) {
 ** Create a new upvalue at the given level, and link it to the list of
 ** open upvalues of 'L' after entry 'prev'.
 **/
-static UpVal *newupval (lua_State *L, StkId level, UpVal **prev) {
+static UpVal *newupval (lua_State *L, StkId level, UpVal **prev) {        // 建一个UpVal后把它链接到openupval链表的表头
   GCObject *o = luaC_newobj(L, LUA_VUPVAL, sizeof(UpVal));
   UpVal *uv = gco2upv(o);
   UpVal *next = *prev;
@@ -77,15 +77,17 @@ static UpVal *newupval (lua_State *L, StkId level, UpVal **prev) {
     G(L)->twups = L;
   }
   return uv;
-}
+}                                                                         // 所有UpVal都是存储在当前线程lua_State的openupval中 每个UpVal只有一份
+                                                                          // 而函数Proto自身只是存储指向它的指针
+                                                                          // 所以每个函数若通过它自身的这个指针修改了UpVal值 则其它函数也能访问到该修改后的值
 
 
 /*
 ** Find and reuse, or create if it does not exist, an upvalue
 ** at the given level.
 */
-UpVal *luaF_findupval (lua_State *L, StkId level) {
-  UpVal **pp = &L->openupval;
+UpVal *luaF_findupval (lua_State *L, StkId level) {                       // UpVal查找
+  UpVal **pp = &L->openupval;                                             // 当前线程lua_State对象的openupval中查找
   UpVal *p;
   lua_assert(isintwups(L) || L->openupval == NULL);
   while ((p = *pp) != NULL && uplevel(p) >= level) {  /* search for it */
@@ -95,7 +97,7 @@ UpVal *luaF_findupval (lua_State *L, StkId level) {
     pp = &p->u.open.next;
   }
   /* not found: create a new upvalue after 'pp' */
-  return newupval(L, level, pp);
+  return newupval(L, level, pp);                                          // 有找到指定level的UpVal的话就会进行创建
 }
 
 
@@ -190,7 +192,7 @@ void luaF_unlinkupval (UpVal *uv) {
 /*
 ** Close all upvalues up to the given stack level.
 */
-void luaF_closeupval (lua_State *L, StkId level) {
+void luaF_closeupval (lua_State *L, StkId level) {                        // 函数在返回后会切换到close状态 // 当前UpVal从链表移除
   UpVal *uv;
   StkId upl;  /* stack index pointed by 'uv' */
   while ((uv = L->openupval) != NULL && (upl = uplevel(uv)) >= level) {

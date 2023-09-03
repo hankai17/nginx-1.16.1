@@ -377,7 +377,7 @@ static int remarkupvals (global_State *g) {
       lua_assert(!isold(thread) || thread->openupval == NULL);
       *p = thread->twups;  /* remove thread from the list */
       thread->twups = thread;  /* mark that it is out of list */
-      for (uv = thread->openupval; uv != NULL; uv = uv->u.open.next) {
+      for (uv = thread->openupval; uv != NULL; uv = uv->u.open.next) {          // UpValue在open状态的时候 存储于全局的openupvalue中 在此链表中的结点会在标记阶段被统一标记上
         lua_assert(getage(uv) <= getage(thread));
         work++;
         if (!iswhite(uv)) {  /* upvalue already visited? */

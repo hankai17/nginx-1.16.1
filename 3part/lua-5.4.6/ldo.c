@@ -430,7 +430,8 @@ StkId luaD_tryfuncTM (lua_State *L, StkId func) {
 ** expressions, multiple results for tail calls/single parameters)
 ** separated.
 */
-l_sinline void moveresults (lua_State *L, StkId res, int nres, int wanted) {
+l_sinline void moveresults (lua_State *L, StkId res,
+        int nres/*函数的返回值个数*/, int wanted/*期待的返回值个数*/) {           // 多返回值 // 据执行的函数的返回值个数和调用者需要获取的个数来准备好数据放到运行堆栈上
   StkId firstresult;
   int i;
   switch (wanted) {  /* handle typical cases separately */
@@ -540,7 +541,7 @@ l_sinline int precallC (lua_State *L, StkId func, int nresults,
 ** (so that it includes the function itself). Return the number of
 ** results, if it was a C function, or -1 for a Lua function.
 */
-int luaD_pretailcall (lua_State *L, CallInfo *ci, StkId func,
+int luaD_pretailcall (lua_State *L, CallInfo *ci, StkId func,                 // 函数尾调用 // 实现尾调用消除
                                     int narg1, int delta) {
  retry:
   switch (ttypetag(s2v(func))) {
@@ -553,14 +554,14 @@ int luaD_pretailcall (lua_State *L, CallInfo *ci, StkId func,
       int fsize = p->maxstacksize;  /* frame size */
       int nfixparams = p->numparams;
       int i;
-      checkstackGCp(L, fsize - delta, func);
+      checkstackGCp(L, fsize - delta, func);                                  // 复用当前空间
       ci->func.p -= delta;  /* restore 'func' (if vararg) */
       for (i = 0; i < narg1; i++)  /* move down function and arguments */
         setobjs2s(L, ci->func.p + i, func + i);
       func = ci->func.p;  /* moved-down function */
       for (; narg1 <= nfixparams; narg1++)
         setnilvalue(s2v(func + narg1));  /* complete missing arguments */
-      ci->top.p = func + 1 + fsize;  /* top for new function */
+      ci->top.p = func + 1 + fsize;  /* top for new function */               // 改变运行堆栈的顶部 使下一个执行的代码就是当前这个尾调用函数
       lua_assert(ci->top.p <= L->stack_last.p);
       ci->u.l.savedpc = p->code;  /* starting point */
       ci->callstatus |= CIST_TAIL;

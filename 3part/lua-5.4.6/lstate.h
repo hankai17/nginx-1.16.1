@@ -316,7 +316,7 @@ struct lua_State {
   CallInfo *ci;  /* call info for current function */
   StkIdRel stack_last;  /* end of stack (last element + 1) */
   StkIdRel stack;  /* stack base */
-  UpVal *openupval;  /* list of open upvalues in this stack */
+  UpVal *openupval;  /* list of open upvalues in this stack */                          // 所有open态的UpVal都链接在这个链表当中 前插法
   StkIdRel tbclist;  /* list of to-be-closed variables */
   GCObject *gclist;
   struct lua_State *twups;  /* list of threads with open upvalues */
