@@ -129,7 +129,7 @@ void luaS_init (lua_State *L) {                                               //
   tb->size = MINSTRTABSIZE;
   /* pre-create memory-error message */
   g->memerrmsg = luaS_newliteral(L, MEMERRMSG);
-  luaC_fix(L, obj2gco(g->memerrmsg));  /* it should never be collected */
+  luaC_fix(L, obj2gco(g->memerrmsg));  /* it should never be collected */     // 常量字符串需要长驻内存 从allgc移出到fix链表中
   for (i = 0; i < STRCACHE_N; i++)  /* fill cache with valid strings */       // 初始化strcache缓存  // 通过地址判断字符串是否已经在缓存中 // 大小是一个TString[53][2]的一个二维数组
     for (j = 0; j < STRCACHE_M; j++)
       g->strcache[i][j] = g->memerrmsg;

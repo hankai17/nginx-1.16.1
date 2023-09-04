@@ -151,7 +151,7 @@ void luaM_free_ (lua_State *L, void *block, size_t osize) {
   global_State *g = G(L);
   lua_assert((osize == 0) == (block == NULL));
   callfrealloc(g, block, osize, 0);
-  g->GCdebt -= osize;
+  g->GCdebt -= osize;                                           // 释放到内存池
 }
 
 
@@ -198,7 +198,7 @@ void *luaM_saferealloc_ (lua_State *L, void *block, size_t osize,
 }
 
 
-void *luaM_malloc_ (lua_State *L, size_t size, int tag) {
+void *luaM_malloc_ (lua_State *L, size_t size, int tag) {                       // 分配对象最终会调用这里
   if (size == 0)
     return NULL;  /* that's all */
   else {
@@ -209,7 +209,7 @@ void *luaM_malloc_ (lua_State *L, size_t size, int tag) {
       if (newblock == NULL)
         luaM_error(L);
     }
-    g->GCdebt += size;
+    g->GCdebt += size;                                                          // 消耗内存池
     return newblock;
   }
 }

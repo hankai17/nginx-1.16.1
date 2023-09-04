@@ -240,7 +240,7 @@ void luaC_barrierback_ (lua_State *L, GCObject *o) {
 }
 
 
-void luaC_fix (lua_State *L, GCObject *o) {
+void luaC_fix (lua_State *L, GCObject *o) {                                     // 把需长驻内存的GCObject对象从allgc链表中移出 并移入fixedgc表中
   global_State *g = G(L);
   lua_assert(g->allgc == o);  /* object must be 1st in 'allgc' list! */
   set2gray(o);  /* they will be gray forever */
@@ -257,7 +257,7 @@ void luaC_fix (lua_State *L, GCObject *o) {
 */
 GCObject *luaC_newobjdt (lua_State *L, int tt, size_t sz, size_t offset) {
   global_State *g = G(L);
-  char *p = cast_charp(luaM_newobject(L, novariant(tt), sz));                   // 只要涉及到内存分配 强转为Obj 并挂全局gc
+  char *p = cast_charp(luaM_newobject(L, novariant(tt), sz));                   // 只要涉及到内存分配 强转为Obj 并挂全局gc // 产生债务说白了就是消耗内存池
   GCObject *o = cast(GCObject *, p + offset);
   o->marked = luaC_white(g);
   o->tt = tt;
@@ -294,11 +294,11 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 ** for at most two levels: An upvalue cannot refer to another upvalue
 ** (only closures can), and a userdata's metatable must be a table.
 */
-static void reallymarkobject (global_State *g, GCObject *o) {
+static void reallymarkobject (global_State *g, GCObject *o) {   // hankai2染色函数 最终都会调用reallymarkobject
   switch (o->tt) {
     case LUA_VSHRSTR:
     case LUA_VLNGSTR: {
-      set2black(o);  /* nothing to visit */
+      set2black(o);  /* nothing to visit */                     // 字符串类型 没有引用其它GCObject对象 直接设置为黑色
       break;
     }
     case LUA_VUPVAL: {
@@ -306,11 +306,11 @@ static void reallymarkobject (global_State *g, GCObject *o) {
       if (upisopen(uv))
         set2gray(uv);  /* open upvalues are kept gray */
       else
-        set2black(uv);  /* closed upvalues are visited here */
+        set2black(uv);  /* closed upvalues are visited here */  
       markvalue(g, uv->v.p);  /* mark its content */
       break;
     }
-    case LUA_VUSERDATA: {
+    case LUA_VUSERDATA: {                                       // 无UpValue的UserData类型 直接设置为黑色
       Udata *u = gco2u(o);
       if (u->nuvalue == 0) {  /* no user values? */
         markobjectN(g, u->metatable);  /* mark its metatable */
@@ -400,7 +400,7 @@ static void cleargraylists (global_State *g) {
 /*
 ** mark root set and reset all gray lists, to start a new collection
 */
-static void restartcollection (global_State *g) {
+static void restartcollection (global_State *g) {   // hankai1标记清除 标记开始
   cleargraylists(g);
   markobject(g, g->mainthread);
   markvalue(g, &g->l_registry);
@@ -539,7 +539,7 @@ static void traversestrongtable (global_State *g, Table *h) {
 }
 
 
-static lu_mem traversetable (global_State *g, Table *h) {
+static lu_mem traversetable (global_State *g, Table *h) {           // hankai3.1 table染黑色
   const char *weakkey, *weakvalue;
   const TValue *mode = gfasttm(g, h->metatable, TM_MODE);
   markobjectN(g, h->metatable);
@@ -560,9 +560,9 @@ static lu_mem traversetable (global_State *g, Table *h) {
 }
 
 
-static int traverseudata (global_State *g, Udata *u) {
+static int traverseudata (global_State *g, Udata *u) {              // hankai3.2 UserData类型染黑
   int i;
-  markobjectN(g, u->metatable);  /* mark its metatable */
+  markobjectN(g, u->metatable);  /* mark its metatable */           // 对其内部引用的metatable与upvalue字段进行标记
   for (i = 0; i < u->nuvalue; i++)
     markvalue(g, &u->uv[i].uv);
   genlink(g, obj2gco(u));
@@ -575,7 +575,8 @@ static int traverseudata (global_State *g, Udata *u) {
 ** arrays can be larger than needed; the extra slots are filled with
 ** NULL, so the use of 'markobjectN')
 */
-static int traverseproto (global_State *g, Proto *f) {
+static int traverseproto (global_State *g, Proto *f) {              // hankai3.5 函数类型染黑 内部有一些字段用于调试 在GC的时候无须对这部分这段进行处理 
+                                                                    // 仅需要处理会引用其它GCObject对象的字段
   int i;
   markobjectN(g, f->source);
   for (i = 0; i < f->sizek; i++)  /* mark literals */
@@ -590,7 +591,7 @@ static int traverseproto (global_State *g, Proto *f) {
 }
 
 
-static int traverseCclosure (global_State *g, CClosure *cl) {
+static int traverseCclosure (global_State *g, CClosure *cl) {       // hankai3.4 Lua C闭包染黑 对其内部的upvalue进行染色
   int i;
   for (i = 0; i < cl->nupvalues; i++)  /* mark its upvalues */
     markvalue(g, &cl->upvalue[i]);
@@ -601,7 +602,7 @@ static int traverseCclosure (global_State *g, CClosure *cl) {
 ** Traverse a Lua closure, marking its prototype and its upvalues.
 ** (Both can be NULL while closure is being created.)
 */
-static int traverseLclosure (global_State *g, LClosure *cl) {
+static int traverseLclosure (global_State *g, LClosure *cl) {       // hankai3.3 Lua闭包类型染黑 对Lua函数类型中的Proto与upvalue进行标记
   int i;
   markobjectN(g, cl->p);  /* mark its prototype */
   for (i = 0; i < cl->nupvalues; i++) {  /* visit its upvalues */
@@ -624,18 +625,18 @@ static int traverseLclosure (global_State *g, LClosure *cl) {
 ** (which can only happen in generational mode) or if the traverse is in
 ** the propagate phase (which can only happen in incremental mode).
 */
-static int traversethread (global_State *g, lua_State *th) {
+static int traversethread (global_State *g, lua_State *th) {        // hankai3.6 线程或协程类型染黑 对当前运行函数栈中的对象进行标记 并对引用的upvalue进行标记
   UpVal *uv;
   StkId o = th->stack.p;
   if (isold(th) || g->gcstate == GCSpropagate)
-    linkgclist(th, g->grayagain);  /* insert into 'grayagain' list */
+    linkgclist(th, g->grayagain);/* insert into 'grayagain' list */
   if (o == NULL)
     return 1;  /* stack not completely built yet */
   lua_assert(g->gcstate == GCSatomic ||
              th->openupval == NULL || isintwups(th));
-  for (; o < th->top.p; o++)  /* mark live elements in the stack */
+  for (; o < th->top.p; o++)  /* mark live elements in the stack */ // top字段
     markvalue(g, s2v(o));
-  for (uv = th->openupval; uv != NULL; uv = uv->u.open.next)
+  for (uv = th->openupval; uv != NULL; uv = uv->u.open.next)        // openupvalue 捕获的变量
     markobject(g, uv);  /* open upvalues cannot be collected */
   if (g->gcstate == GCSatomic) {  /* final traversal? */
     for (; o < th->stack_last.p + EXTRA_STACK; o++)
@@ -655,11 +656,13 @@ static int traversethread (global_State *g, lua_State *th) {
 /*
 ** traverse one gray object, turning it to black.
 */
-static lu_mem propagatemark (global_State *g) {
-  GCObject *o = g->gray;
+static lu_mem propagatemark (global_State *g) {             // hankai3 颜色传播标记过程
+  GCObject *o = g->gray;                                    // g->gray链表存储了所有灰色对象 从链表头部拿出1个灰色对象染黑
   nw2black(o);
   g->gray = *getgclist(o);  /* remove from 'gray' list */
-  switch (o->tt) {
+  switch (o->tt) {                                          // 对该对象的子对象染色 // 如果子对象引用子子对象 那么把这个子对象(燃灰)挂到g->gray上  // 深度优先算法
+                                                            // 若该对象无子对象 那么把该对象染黑
+                                                            // 返回对应处理了的对象(TValue)个数
     case LUA_VTABLE: return traversetable(g, gco2t(o));
     case LUA_VUSERDATA: return traverseudata(g, gco2u(o));
     case LUA_VLCL: return traverseLclosure(g, gco2lcl(o));
@@ -1481,11 +1484,11 @@ static void genstep (lua_State *L, global_State *g) {
 ** not need to skip objects created between "now" and the start of the
 ** real sweep.
 */
-static void entersweep (lua_State *L) {
+static void entersweep (lua_State *L) {                                     // 清除阶段
   global_State *g = G(L);
   g->gcstate = GCSswpallgc;
   lua_assert(g->sweepgc == NULL);
-  g->sweepgc = sweeptolive(L, &g->allgc);
+  g->sweepgc = sweeptolive(L, &g->allgc);                                   // 遍历全局gc链表
 }
 
 
@@ -1586,7 +1589,8 @@ static lu_mem singlestep (lua_State *L) {
   lua_assert(!g->gcstopem);  /* collector is not reentrant */
   g->gcstopem = 1;  /* no emergency collections while collecting */
   switch (g->gcstate) {
-    case GCSpause: {
+    /////////////////////////////////////////标记////////////////////////////////////////////////////
+    case GCSpause: {                                            
       restartcollection(g);
       g->gcstate = GCSpropagate;
       work = 1;
@@ -1607,6 +1611,8 @@ static lu_mem singlestep (lua_State *L) {
       g->GCestimate = gettotalbytes(g);  /* first estimate */;
       break;
     }
+
+    //////////////////////////////////////////清除///////////////////////////////////////////////////
     case GCSswpallgc: {  /* sweep "regular" objects */
       work = sweepstep(L, g, GCSswpfinobj, &g->finobj);
       break;
@@ -1664,18 +1670,23 @@ void luaC_runtilstate (lua_State *L, int statesmask) {
 */
 static void incstep (lua_State *L, global_State *g) {
   int stepmul = (getgcparam(g->gcstepmul) | 1);  /* avoid division by 0 */
-  l_mem debt = (g->GCdebt / WORK2MEM) * stepmul;
-  l_mem stepsize = (g->gcstepsize <= log2maxs(l_mem))
-                 ? ((cast(l_mem, 1) << g->gcstepsize) / WORK2MEM) * stepmul
+  l_mem debt = (g->GCdebt / WORK2MEM) * stepmul;                                // 工作量/当前欠下的债务            // 超出内存池的内存
+  l_mem stepsize = (g->gcstepsize <= log2maxs(l_mem))							// WORK2MEM 即 sizeof(TValue) stepmul为100 gcstepsize为13
+                 ? ((cast(l_mem, 1) << g->gcstepsize) / WORK2MEM) * stepmul     // 预充值800KB对应的TValue的个数    // 额外补充到内存池的量
                  : MAX_LMEM;  /* overflow; keep maximum value */
   do {  /* repeat until pause or enough "credit" (negative debt) */
-    lu_mem work = singlestep(L);  /* perform one single step */
+    lu_mem work = singlestep(L);  /* perform one single step */                 // 每轮实际释放的内存?				// 每轮补充的量		// 之所以用work工作量证明 是害怕直接用GCdebt会造成死循环 此乃分步式的来源
     debt -= work;
   } while (debt > -stepsize && g->gcstate != GCSpause);
+
+  // eg: 已经超出内存池100个   补充8个
+  //    如果每轮消费10 经过10轮后 debt为0即超出的部分已经全部回收了
+  //    0 > -8  继续消费 -10 < -8 停止                                          // 回收完超出的内存(工作量)还不算完 还要补充/回收800KB对应的TValue个(预充值) 确保内存池有free的内存空间供下次分配内存使用
+
   if (g->gcstate == GCSpause)
     setpause(g);  /* pause until next cycle */
   else {
-    debt = (debt / stepmul) * WORK2MEM;  /* convert 'work units' to bytes */
+    debt = (debt / stepmul) * WORK2MEM;  /* convert 'work units' to bytes */    // 重置内存池GCdebt为debt 即-10 即代表当前内存池又有空间了
     luaE_setdebt(g, debt);
   }
 }
@@ -1691,9 +1702,9 @@ void luaC_step (lua_State *L) {
     luaE_setdebt(g, -2000);
   else {
     if(isdecGCmodegen(g))
-      genstep(L, g);
+      genstep(L, g);                        // 分代式
     else
-      incstep(L, g);
+      incstep(L, g);                        // 增量式三色标记清除
   }
 }
 

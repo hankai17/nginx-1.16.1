@@ -258,21 +258,21 @@ struct CallInfo {
 
 local tvalue1 = {1,2,3}
 local tvalue2 = tvalue1
-t1 t2的gc指向是一样的
+t1 t2的gc指向是一样的                                                                   // 即多个Tvalue 引用同一个obj
 */
 
 /*
 ** 'global state', shared by all threads of this state
 */
-typedef struct global_State {
+typedef struct global_State {                                                           // 标记阶段的根结点
   lua_Alloc frealloc;  /* function to reallocate memory */
   void *ud;         /* auxiliary data to 'frealloc' */
-  l_mem totalbytes;  /* number of bytes currently allocated - GCdebt */
-  l_mem GCdebt;  /* bytes allocated not yet compensated by the collector */
+  l_mem totalbytes;  /* number of bytes currently allocated - GCdebt */                 // 当前系统分配的总内存大小
+  l_mem GCdebt;  /* bytes allocated not yet compensated by the collector */             // 内存池
   lu_mem GCestimate;  /* an estimate of the non-garbage memory in use */
   lu_mem lastatomic;  /* see function 'genstep' in file 'lgc.c' */
-  stringtable strt;  /* hash table for strings */                                       // 短字符串hash表
-  TValue l_registry;
+  stringtable strt;  /* hash table for strings */                                       // 短字符串hash表                                           // 1需要回收
+  TValue l_registry;                                                                    // 全局_G表 Lua声明在全局作用域的变量都存储在这个Table中    // 2需要回收
   TValue nilvalue;  /* a nil value */
   unsigned int seed;  /* randomized seed for hashes */
   lu_byte currentwhite;
@@ -286,7 +286,7 @@ typedef struct global_State {
   lu_byte gcpause;  /* size of pause between successive GCs */
   lu_byte gcstepmul;  /* GC "speed" */
   lu_byte gcstepsize;  /* (log2 of) GC granularity */
-  GCObject *allgc;  /* list of all collectable objects */                               // lgc.c:luaC_newobj 将所有分配的对象挂到这里
+  GCObject *allgc;  /* list of all collectable objects */                               // lgc.c:luaC_newobj 将所有分配的对象挂到这里               // 
   GCObject **sweepgc;  /* current position of sweep in list */
   GCObject *finobj;  /* list of collectable objects with finalizers */
   GCObject *gray;  /* list of gray objects */
@@ -304,13 +304,13 @@ typedef struct global_State {
   GCObject *finobjsur;  /* list of survival objects with finalizers */
   GCObject *finobjold1;  /* list of old1 objects with finalizers */
   GCObject *finobjrold;  /* list of really old objects with finalizers */
-  struct lua_State *twups;  /* list of threads with open upvalues */
+  struct lua_State *twups;  /* list of threads with open upvalues */                    // 捕获UpValue的协程 链表                                   // 3需要对捕获的obj回收
   lua_CFunction panic;  /* to be called in unprotected errors */
-  struct lua_State *mainthread;
-  TString *memerrmsg;  /* message for memory-allocation errors */
-  TString *tmname[TM_N];  /* array with tag-method names */
-  struct Table *mt[LUA_NUMTYPES];  /* metatables for basic types */
-  TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */            //  通过地址判断字符串是否已经在缓存中
+  struct lua_State *mainthread;                                                         // 当前主线程 其中引用着当前函数运行堆栈 UpValue等信息      // 4需要回收
+  TString *memerrmsg;  /* message for memory-allocation errors */                       // 常量字串 长驻内存 调luaC_fix从allgc链表移除 lstring.c:luaS_init
+  TString *tmname[TM_N];  /* array with tag-method names */                             // 同上 ltm.c:luaT_init
+  struct Table *mt[LUA_NUMTYPES];  /* metatables for basic types */                     // 各基础类型声明的元表和元方法                             // 5需要回收 用户自定义的元表及元表中引用的对象
+  TString *strcache[STRCACHE_N][STRCACHE_M];  /* cache for strings in API */            //  通过地址判断字符串是否已经在缓存中                      // 6需要回收
   lua_WarnFunction warnf;  /* warning function */
   void *ud_warn;         /* auxiliary data to 'warnf' */
 } global_State;

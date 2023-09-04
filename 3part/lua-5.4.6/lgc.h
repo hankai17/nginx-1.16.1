@@ -166,10 +166,10 @@
 */
 #define luaC_condGC(L,pre,pos) \
 	{ if (G(L)->GCdebt > 0) { pre; luaC_step(L); pos;}; \
-	  condchangemem(L,pre,pos); }
+	  condchangemem(L,pre,pos); }                                               // 内存池用完了则调用luaC_step
 
 /* more often than not, 'pre'/'pos' are empty */
-#define luaC_checkGC(L)		luaC_condGC(L,(void)0,(void)0)
+#define luaC_checkGC(L)		luaC_condGC(L,(void)0,(void)0)                      // 检查内存池释放用完 // 调用时机为创建各种对象时 
 
 
 #define luaC_objbarrier(L,p,o) (  \
