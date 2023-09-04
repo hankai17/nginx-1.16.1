@@ -97,7 +97,7 @@ UpVal *luaF_findupval (lua_State *L, StkId level) {                       // UpV
     pp = &p->u.open.next;
   }
   /* not found: create a new upvalue after 'pp' */
-  return newupval(L, level, pp);                                          // 有找到指定level的UpVal的话就会进行创建
+  return newupval(L, level, pp);                                          // 没有找到指定level的UpVal的话就会进行创建
 }
 
 
@@ -192,7 +192,7 @@ void luaF_unlinkupval (UpVal *uv) {
 /*
 ** Close all upvalues up to the given stack level.
 */
-void luaF_closeupval (lua_State *L, StkId level) {                        // 函数在返回后会切换到close状态 // 当前UpVal从链表移除
+void luaF_closeupval (lua_State *L, StkId level) {                        // 函数在返回后会切换到close状态 // 当前UpVal从链表移除 // 但并没有释放内存
   UpVal *uv;
   StkId upl;  /* stack index pointed by 'uv' */
   while ((uv = L->openupval) != NULL && (upl = uplevel(uv)) >= level) {

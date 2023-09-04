@@ -72,10 +72,10 @@
 ** used for object "age" in generational mode. Last bit is used
 ** by tests.
 */
-#define WHITE0BIT	3  /* object is white (type 0) */
-#define WHITE1BIT	4  /* object is white (type 1) */
-#define BLACKBIT	5  /* object is black */
-#define FINALIZEDBIT	6  /* object has been marked for finalization */
+#define WHITE0BIT	3  /* object is white (type 0) */                       // 表示白色0(标记清除算法中的当前白)   二进制为00001000
+#define WHITE1BIT	4  /* object is white (type 1) */                       // 表示白色1(标记清除算法中的上一轮白) 二进制为00010000
+#define BLACKBIT	5  /* object is black */                                // 表示黑色                            二进制为00100000而 当第3或4 第5位都为0时 即不是白也不是黑时 此时代表灰色 二进制为00000000
+#define FINALIZEDBIT	6  /* object has been marked for finalization */    // marked第6位 析构标记
 
 #define TESTBIT		7
 
@@ -103,15 +103,15 @@
 
 
 /* object age in generational mode */
-#define G_NEW		0	/* created in current cycle */
-#define G_SURVIVAL	1	/* created in previous cycle */
-#define G_OLD0		2	/* marked old by frw. barrier in this cycle */
-#define G_OLD1		3	/* first full cycle as old */
-#define G_OLD		4	/* really old object (not to be visited) */
-#define G_TOUCHED1	5	/* old object touched this cycle */
-#define G_TOUCHED2	6	/* old object touched in previous cycle */
+#define G_NEW		0	/* created in current cycle */                  // 代表当前迭代创建出来的对象 马上要变成年轻一代
+#define G_SURVIVAL	1	/* created in previous cycle */                 // 年轻一代 代表上次迭代创建出来 现在还存活的对象
+#define G_OLD0		2	/* marked old by frw. barrier in this cycle */  // 2轮GC后就要变老的年轻一代
+#define G_OLD1		3	/* first full cycle as old */                   // 1轮GC后就要变老的年轻一代
+#define G_OLD		4	/* really old object (not to be visited) */     // 老年一代 引用的对象也是老年一代
+#define G_TOUCHED1	5	/* old object touched this cycle */             // 老年一代但临时有直接引用着年轻一代的标记 2轮GC后重新变回纯老年一代
+#define G_TOUCHED2	6	/* old object touched in previous cycle */      // 老年一代但临时有直接引用着年轻一代的标记 1轮GC后重新变回纯老年一代
 
-#define AGEBITS		7  /* all age bits (111) */
+#define AGEBITS		7  /* all age bits (111) */                         // 纯逻辑运算使用标记 无特别含义
 
 #define getage(o)	((o)->marked & AGEBITS)
 #define setage(o,a)  ((o)->marked = cast_byte(((o)->marked & (~AGEBITS)) | a))

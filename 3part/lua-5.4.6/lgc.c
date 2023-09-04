@@ -257,11 +257,11 @@ void luaC_fix (lua_State *L, GCObject *o) {
 */
 GCObject *luaC_newobjdt (lua_State *L, int tt, size_t sz, size_t offset) {
   global_State *g = G(L);
-  char *p = cast_charp(luaM_newobject(L, novariant(tt), sz));                 // 只要涉及到内存分配 强转为Obj 并挂全局gc
+  char *p = cast_charp(luaM_newobject(L, novariant(tt), sz));                   // 只要涉及到内存分配 强转为Obj 并挂全局gc
   GCObject *o = cast(GCObject *, p + offset);
   o->marked = luaC_white(g);
   o->tt = tt;
-  o->next = g->allgc;
+  o->next = g->allgc;                                                           // 前插法
   g->allgc = o;
   return o;
 }
@@ -767,7 +767,7 @@ static void freeupval (lua_State *L, UpVal *uv) {
 }
 
 
-static void freeobj (lua_State *L, GCObject *o) {
+static void freeobj (lua_State *L, GCObject *o) {           // 不同的对象类型 使用不同的释放方式
   switch (o->tt) {
     case LUA_VPROTO:
       luaF_freeproto(L, gco2p(o));

@@ -286,6 +286,10 @@ typedef union {
 ** included in other objects)
 */
 #define CommonHeader	struct GCObject *next; lu_byte tt; lu_byte marked               // 复合对象的头部三剑客
+                                                                                        // marked: [0~2] 分代式算法 会记录对象的年龄            // lgc.h G_NEW ...
+                                                                                        // marked: [3~5] 增量三色标记算法 代表对象处于什么颜色  // lgc.h WHITE0 ...
+                                                                                        // marked: [6] FINALIZEDBIT 析构标记
+                                                                                        // marked: [7] 暂时未使用
 
 
 /* Common type for all collectable objects */

@@ -148,8 +148,8 @@ struct lua_longjmp;  /* defined in ldo.c */
 
 
 /* kinds of Garbage Collection */
-#define KGC_INC		0	/* incremental gc */
-#define KGC_GEN		1	/* generational gc */
+#define KGC_INC		0	/* incremental gc */    // 增量式标记清楚法 // 默认
+#define KGC_GEN		1	/* generational gc */   // 分代式
 
 
 typedef struct stringtable {                // 用来缓存短字符串
@@ -247,6 +247,19 @@ struct CallInfo {
 #define setoah(st,v)	((st) = ((st) & ~CIST_OAH) | (v))
 #define getoah(st)	((st) & CIST_OAH)
 
+/*
+1）lightuserdata类型使用Value的void* p字段
+2）number类型对象使用Value的lua_Integer i和lua_Number n字段
+它们都不需要使用GCObject* gc字段 不需要额外申请堆空间 所以lightuserdata和number类型对象都并不是GCObject子对象
+3）我们的nil对象是不需要存储任何数值的
+4）然后boolean对象会把true和false作为一种子类型 以不同标识存储在类型标识tt(typetag)中
+所以nil和boolean也并不需要用到gc字段 也不需要申请额外堆空间存储数据 他们也不是GCObject子对象
+剩下的5种基础类型string table function userdata thread都是GCObject类的子类型 都是需要申请堆空间存储额外数据
+
+local tvalue1 = {1,2,3}
+local tvalue2 = tvalue1
+t1 t2的gc指向是一样的
+*/
 
 /*
 ** 'global state', shared by all threads of this state
@@ -273,7 +286,7 @@ typedef struct global_State {
   lu_byte gcpause;  /* size of pause between successive GCs */
   lu_byte gcstepmul;  /* GC "speed" */
   lu_byte gcstepsize;  /* (log2 of) GC granularity */
-  GCObject *allgc;  /* list of all collectable objects */
+  GCObject *allgc;  /* list of all collectable objects */                               // lgc.c:luaC_newobj 将所有分配的对象挂到这里
   GCObject **sweepgc;  /* current position of sweep in list */
   GCObject *finobj;  /* list of collectable objects with finalizers */
   GCObject *gray;  /* list of gray objects */

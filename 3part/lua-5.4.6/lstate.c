@@ -357,7 +357,7 @@ LUA_API int lua_resetthread (lua_State *L) {
 }
 
 
-LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
+LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {                   // 创建Lua主线程运行环境
   int i;
   lua_State *L;
   global_State *g;
@@ -384,7 +384,7 @@ LUA_API lua_State *lua_newstate (lua_Alloc f, void *ud) {
   setnilvalue(&g->l_registry);
   g->panic = NULL;
   g->gcstate = GCSpause;
-  g->gckind = KGC_INC;
+  g->gckind = KGC_INC;                                                      // 默认使用增量式标记清楚法 gc
   g->gcstopem = 0;
   g->gcemergency = 0;
   g->finobj = g->tobefnz = g->fixedgc = NULL;
