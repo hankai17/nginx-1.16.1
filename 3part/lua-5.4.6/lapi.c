@@ -893,14 +893,15 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
 }
 
 
-static void aux_rawset (lua_State *L, int idx, TValue *key, int n) {
+static void aux_rawset (lua_State *L, int idx, TValue *key, int n) {        // 设置Table中一个键值对的数据
   Table *t;
   lua_lock(L);
   api_checknelems(L, n);
   t = gettable(L, idx);
   luaH_set(L, t, key, s2v(L->top.p - 1));
   invalidateTMcache(t);
-  luaC_barrierback(L, obj2gco(t), s2v(L->top.p - 1));
+  luaC_barrierback(L, obj2gco(t), s2v(L->top.p - 1));                       // 场景: obj2gco(t)已经标记为黑 而s2v(L->top.p-1)是白的:  // 后退屏障 即把table从黑色标记为灰
+                                                                            // 其实意思是 table表被标记为黑色了 但是此时插入了一个新元素    那么需要把table标记为灰色 放到传播阶段"集中"处理
   L->top.p -= n;
   lua_unlock(L);
 }
@@ -918,13 +919,13 @@ LUA_API void lua_rawsetp (lua_State *L, int idx, const void *p) {
 }
 
 
-LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {
+LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {           // 设置Table中数组部分一个下标对应的数值
   Table *t;
   lua_lock(L);
   api_checknelems(L, 1);
   t = gettable(L, idx);
   luaH_setint(L, t, n, s2v(L->top.p - 1));
-  luaC_barrierback(L, obj2gco(t), s2v(L->top.p - 1));
+  luaC_barrierback(L, obj2gco(t), s2v(L->top.p - 1));                       // 场景同上
   L->top.p--;
   lua_unlock(L);
 }
@@ -981,7 +982,8 @@ LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {  // 设置UValue�
     res = 0;  /* 'n' not in [1, uvalue(o)->nuvalue] */
   else {
     setobj(L, &uvalue(o)->uv[n - 1].uv, s2v(L->top.p - 1));
-    luaC_barrierback(L, gcvalue(o), s2v(L->top.p - 1));
+    luaC_barrierback(L, gcvalue(o), s2v(L->top.p - 1));         // 场景: gcvalue(o)是黑的 s2v(L->top.p-1)是白的:  
+                                                                // 当修改它的UpValue时 会使用后退屏障重新把该UserData原本的黑色标记为灰色
     res = 1;
   }
   L->top.p--;

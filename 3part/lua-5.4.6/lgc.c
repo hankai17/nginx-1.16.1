@@ -205,11 +205,11 @@ static int iscleared (global_State *g, const GCObject *o) {
 ** be done is generational mode, as its sweep does not distinguish
 ** whites from deads.)
 */
-void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {
+void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {                   // 前向屏障: 对被黑色对象引用的白色对象 标记为灰色或黑色 // 大部分情况下都是使用前向屏障
   global_State *g = G(L);
   lua_assert(isblack(o) && iswhite(v) && !isdead(g, v) && !isdead(g, o));
-  if (keepinvariant(g)) {  /* must keep invariant? */
-    reallymarkobject(g, v);  /* restore invariant */
+  if (keepinvariant(g)) {  /* must keep invariant? */                           // 判断当前阶段是否需要保证一致性原则的宏
+    reallymarkobject(g, v);  /* restore invariant */                            // 对这个白色对象 染色  // 数据越多 本次前向屏障的执行时间越长 ???
     if (isold(o)) {
       lua_assert(!isold(v));  /* white object could not be old */
       setage(v, G_OLD0);  /* restore generational invariant */
@@ -227,14 +227,16 @@ void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {
 ** barrier that moves collector backward, that is, mark the black object
 ** pointing to a white object as gray again.
 */
-void luaC_barrierback_ (lua_State *L, GCObject *o) {
+void luaC_barrierback_ (lua_State *L, GCObject *o) {                            // 后退屏障: 把引用该白色对象的黑色对象修改回灰色 // 处理Table和UserData时使用后退屏障
+                                                                                // 然后在GC颜色传播(propagatemark)阶段时被处理 颜色传播阶段使用债务管理算法控制每一轮的起始与结束
+                                                                                // 能很好地控制每一轮的工作量 不会导致突然性的处理量加重 所以后退屏障能很好的保持GC的性能稳定
   global_State *g = G(L);
   lua_assert(isblack(o) && !isdead(g, o));
   lua_assert((g->gckind == KGC_GEN) == (isold(o) && getage(o) != G_TOUCHED1));
   if (getage(o) == G_TOUCHED2)  /* already in gray list? */
-    set2gray(o);  /* make it gray to become touched1 */
+    set2gray(o);  /* make it gray to become touched1 */                         // 黑变灰
   else  /* link it in 'grayagain' and paint it gray */
-    linkobjgclist(o, g->grayagain);
+    linkobjgclist(o, g->grayagain);                                             // 黑变灰
   if (isold(o))  /* generational mode? */
     setage(o, G_TOUCHED1);  /* touched in current cycle */
 }
@@ -294,15 +296,15 @@ GCObject *luaC_newobj (lua_State *L, int tt, size_t sz) {
 ** for at most two levels: An upvalue cannot refer to another upvalue
 ** (only closures can), and a userdata's metatable must be a table.
 */
-static void reallymarkobject (global_State *g, GCObject *o) {   // hankai2染色函数 最终都会调用reallymarkobject
+static void reallymarkobject (global_State *g, GCObject *o) {   // hankai1.1染色函数 最终都会调用reallymarkobject
   switch (o->tt) {
     case LUA_VSHRSTR:
     case LUA_VLNGSTR: {
-      set2black(o);  /* nothing to visit */                     // 字符串类型 没有引用其它GCObject对象 直接设置为黑色
+      set2black(o);  /* nothing to visit */                     // 字符串类型不会引用其它GCObject对象 直接设置为黑色
       break;
     }
     case LUA_VUPVAL: {
-      UpVal *uv = gco2upv(o);
+      UpVal *uv = gco2upv(o);                                   // 捕获的变量 如果正在使用则标记为灰色 如果闭包返回了则将捕获的变量标记为黑色
       if (upisopen(uv))
         set2gray(uv);  /* open upvalues are kept gray */
       else
@@ -319,7 +321,7 @@ static void reallymarkobject (global_State *g, GCObject *o) {   // hankai2染色
       }
       /* else... */
     }  /* FALLTHROUGH */
-    case LUA_VLCL: case LUA_VCCL: case LUA_VTABLE:
+    case LUA_VLCL: case LUA_VCCL: case LUA_VTABLE:              // table/thread/fun类型直接挂到灰色链表上
     case LUA_VTHREAD: case LUA_VPROTO: {
       linkobjgclist(o, g->gray);  /* to be visited later */
       break;
@@ -400,8 +402,8 @@ static void cleargraylists (global_State *g) {
 /*
 ** mark root set and reset all gray lists, to start a new collection
 */
-static void restartcollection (global_State *g) {   // hankai1标记清除 标记开始
-  cleargraylists(g);
+static void restartcollection (global_State *g) {   // hankai1标记清除 标记开始 // 产生黑色与灰色节点
+  cleargraylists(g);                                // 先把所有对象设置为未标记状态
   markobject(g, g->mainthread);
   markvalue(g, &g->l_registry);
   markmt(g);
@@ -443,18 +445,20 @@ static void genlink (global_State *g, GCObject *o) {
 ** atomic phase. In the atomic phase, if table has any white value,
 ** put it in 'weak' list, to be cleared.
 */
-static void traverseweakvalue (global_State *g, Table *h) {
+                                                                                // hankai key强 value弱 则table自身标记key
+                                                                                //        key弱 value强 则无引用key则不标记 有引用key则table自身标记value
+static void traverseweakvalue (global_State *g, Table *h) {                     // key是强引用 值是弱引用 // 标记所有key 不标记自身的value
   Node *n, *limit = gnodelast(h);
   /* if there is array part, assume it may have white values (it is not
      worth traversing it now just to check) */
   int hasclears = (h->alimit > 0);
   for (n = gnode(h, 0); n < limit; n++) {  /* traverse hash part */
-    if (isempty(gval(n)))  /* entry is empty? */
+    if (isempty(gval(n)))  /* entry is empty? */                                // 当值被清空后 对应的键无论是否被标记也被清除
       clearkey(n);  /* clear its key */
     else {
       lua_assert(!keyisnil(n));
-      markkey(g, n);
-      if (!hasclears && iscleared(g, gcvalueN(gval(n))))  /* a white value? */
+      markkey(g, n);                                                            // 只标记键 不标记值
+      if (!hasclears && iscleared(g, gcvalueN(gval(n))))  /* a white value? */  
         hasclears = 1;  /* table will have to be cleared */
     }
   }
@@ -656,7 +660,7 @@ static int traversethread (global_State *g, lua_State *th) {        // hankai3.6
 /*
 ** traverse one gray object, turning it to black.
 */
-static lu_mem propagatemark (global_State *g) {             // hankai3 颜色传播标记过程
+static lu_mem propagatemark (global_State *g) {             // hankai3 颜色传播标记过程 // 处理/消费灰色节点
   GCObject *o = g->gray;                                    // g->gray链表存储了所有灰色对象 从链表头部拿出1个灰色对象染黑
   nw2black(o);
   g->gray = *getgclist(o);  /* remove from 'gray' list */
@@ -1591,7 +1595,7 @@ static lu_mem singlestep (lua_State *L) {
   switch (g->gcstate) {
     /////////////////////////////////////////标记////////////////////////////////////////////////////
     case GCSpause: {                                            
-      restartcollection(g);
+      restartcollection(g);                                             // hankai1
       g->gcstate = GCSpropagate;
       work = 1;
       break;
@@ -1602,10 +1606,11 @@ static lu_mem singlestep (lua_State *L) {
         work = 0;
       }
       else
-        work = propagatemark(g);  /* traverse one gray object */
+        work = propagatemark(g);  /* traverse one gray object */        // hankai3
       break;
     }
-    case GCSenteratomic: {
+    case GCSenteratomic: {                                              // hankai4 标记阶段的一致性原则 场景: 创建一个新对象(白色) 已经在hankai1/3中标记为黑色的对象引用这个白色对象
+                                                                        // 导致黑色对象引用白色对象 // 然后呢??????
       work = atomic(L);  /* work is what was traversed by 'atomic' */
       entersweep(L);
       g->GCestimate = gettotalbytes(g);  /* first estimate */;

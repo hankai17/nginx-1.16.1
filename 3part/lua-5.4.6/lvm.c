@@ -328,18 +328,18 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,     
 ** 'luaV_fastget' would have done the job.)
 */
 void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
-                     TValue *val, const TValue *slot) {
+                     TValue *val, const TValue *slot) {                             // Table在一个Key或数组下标设置一个Value
   int loop;  /* counter to avoid infinite loops */
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     const TValue *tm;  /* '__newindex' metamethod */
     if (slot != NULL) {  /* is 't' a table? */
       Table *h = hvalue(t);  /* save 't' table */
       lua_assert(isempty(slot));  /* slot must be empty */
-      tm = fasttm(L, h->metatable, TM_NEWINDEX);  /* get metamethod */                // 获取table的__newindex字段 命名为tm
+      tm = fasttm(L, h->metatable, TM_NEWINDEX);  /* get metamethod */              // 获取table的__newindex字段 命名为tm
       if (tm == NULL) {  /* no metamethod? */
         luaH_finishset(L, h, key, slot, val);  /* set new value */
         invalidateTMcache(h);
-        luaC_barrierback(L, obj2gco(h), val);
+        luaC_barrierback(L, obj2gco(h), val);                                       // 场景同lapi.c:aux_rawset 后退屏障
         return;
       }
       /* else will try the metamethod */
@@ -350,12 +350,12 @@ void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
         luaG_typeerror(L, t, "index");
     }
     /* try the metamethod */
-    if (ttisfunction(tm)) {                                                           // 若tm为函数 则调用
+    if (ttisfunction(tm)) {                                                         // 若tm为函数 则调用
       luaT_callTM(L, tm, t, key, val);
       return;
     }
     t = tm;  /* else repeat assignment over 'tm' */
-    if (luaV_fastget(L, t, key, slot, luaH_get)) {                                    // 若tm为table 则把tm作为新的t参数 重复流程 重新尝试查询t中是否有需要的key值
+    if (luaV_fastget(L, t, key, slot, luaH_get)) {                                  // 若tm为table 则把tm作为新的t参数 重复流程 重新尝试查询t中是否有需要的key值
       luaV_finishfastset(L, t, slot, val);
       return;  /* done */
     }
@@ -1143,7 +1143,7 @@ void luaV_finishOp (lua_State *L) {
 #define vmbreak		break
 
 
-void luaV_execute (lua_State *L, CallInfo *ci) {
+void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通过列表方式初始化Table数组部分内容 
   LClosure *cl;
   TValue *k;
   StkId base;
@@ -1864,7 +1864,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {
           TValue *val = s2v(ra + n);
           setobj2t(L, &h->array[last - 1], val);
           last--;
-          luaC_barrierback(L, obj2gco(h), val);
+          luaC_barrierback(L, obj2gco(h), val);                                       // 场景同lapi.c:aux_rawset 后退屏障
         }
         vmbreak;
       }

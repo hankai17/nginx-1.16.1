@@ -665,7 +665,7 @@ static Node *getfreepos (Table *t) {
 ** put new key in its main position; otherwise (colliding node is in its main
 ** position), new key goes to an empty position.
 */
-void luaH_newkey (lua_State *L, Table *t, const TValue *key, TValue *value) {
+void luaH_newkey (lua_State *L, Table *t, const TValue *key, TValue *value) {   // Table添加一个键
   Node *mp;
   TValue aux;
   if (l_unlikely(ttisnil(key)))
@@ -716,7 +716,7 @@ void luaH_newkey (lua_State *L, Table *t, const TValue *key, TValue *value) {
     }
   }
   setnodekey(L, mp, key);
-  luaC_barrierback(L, obj2gco(t), key);
+  luaC_barrierback(L, obj2gco(t), key);                                         // 场景: 同lapi.c:aux_rawset 后退屏障
   lua_assert(isempty(gval(mp)));
   setobj2t(L, gval(mp), value);
 }
