@@ -75,7 +75,7 @@
 #define WHITE0BIT	3  /* object is white (type 0) */                       // 表示白色0(标记清除算法中的当前白)   二进制为00001000
 #define WHITE1BIT	4  /* object is white (type 1) */                       // 表示白色1(标记清除算法中的上一轮白) 二进制为00010000
 #define BLACKBIT	5  /* object is black */                                // 表示黑色                            二进制为00100000而 当第3或4 第5位都为0时 即不是白也不是黑时 此时代表灰色 二进制为00000000
-#define FINALIZEDBIT	6  /* object has been marked for finalization */    // marked第6位 析构标记
+#define FINALIZEDBIT	6  /* object has been marked for finalization */    // marked第6位 析构标记 // 代表拥有未执行的析构器 对象在创建时放在g->finobj而非g->allgc
 
 #define TESTBIT		7
 

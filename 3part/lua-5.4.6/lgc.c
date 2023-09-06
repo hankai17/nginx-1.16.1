@@ -236,7 +236,7 @@ void luaC_barrierback_ (lua_State *L, GCObject *o) {                            
   if (getage(o) == G_TOUCHED2)  /* already in gray list? */
     set2gray(o);  /* make it gray to become touched1 */                         // 黑变灰
   else  /* link it in 'grayagain' and paint it gray */
-    linkobjgclist(o, g->grayagain);                                             // 黑变灰
+    linkobjgclist(o, g->grayagain);                                             // 黑变灰   // 为了防止灰链表太长导致颜色传播阶段处理不完 则引出一个grayagain链表
   if (isold(o))  /* generational mode? */
     setage(o, G_TOUCHED1);  /* touched in current cycle */
 }
@@ -693,19 +693,21 @@ static lu_mem propagateall (global_State *g) {
 ** convergence on chains in the same table.
 **
 */
-static void convergeephemerons (global_State *g) {
+static void convergeephemerons (global_State *g) {                                  // 场景: 此时所有Key_WeakTable都已经从gray或者grayagain中被移除并进行一些标记
+                                                                                    // 处理完毕后会把它们存在g->ephemeron(译为短暂的事物)链表中 // 此函数功能为消费e链表
   int changed;
   int dir = 0;
   do {
     GCObject *w;
-    GCObject *next = g->ephemeron;  /* get ephemeron list */
+    GCObject *next = g->ephemeron;  /* get ephemeron list */                        // 先从e链表取出全部的Key_WeakTable 并用一个临时指针指向它表示等待处理 接着就清空g->ephemeron原链表指针
     g->ephemeron = NULL;  /* tables may return to this list when traversed */
     changed = 0;
-    while ((w = next) != NULL) {  /* for each ephemeron table */
+    while ((w = next) != NULL) {  /* for each ephemeron table */                    // 按某种顺序对等待处理的原e链表中的Key_WeakTable依次处理
+                                                                                    // 若发现某个Key_WeakTable仍然具有至少一个Key和Value都为空的结点 则把该Table重新插入到下一轮的E链表中 该链表在上一步被重置过已经为空链表
       Table *h = gco2t(w);
       next = h->gclist;  /* list is rebuilt during loop */
       nw2black(h);  /* out of the list (for now) */
-      if (traverseephemeron(g, h, dir)) {  /* marked some value? */
+      if (traverseephemeron(g, h, dir)) {  /* marked some value? */                 // 当这一轮内循环链表中所有Key_WeakTable对象全部处理结束后，若有任意对象颜色标记被修改，则外循环while重新继续开始新一轮，重复第一步操作。这里还有个把dir遍历方向设置为!dir反向的优化细节，下面例子中再详细讲。
         propagateall(g);  /* propagate changes */
         changed = 1;  /* will have to revisit all ephemeron tables */
       }
@@ -1528,6 +1530,11 @@ void luaC_freeallobjects (lua_State *L) {
 
 
 static lu_mem atomic (lua_State *L) {
+  //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////        
+                                                                            // 重新进行标记 它们分别是mainthread l_registry mt twups
+                                                                            // 这几个字段它们在GC算法中其实是没有父结点 被修改/替换后直接变成了白色对象 
+                                                                            // 也没有违反一致性原则(没有黑色对象引用白色对象) // so 无法使用屏障 去修复这种根结点对象被修改颜色异常的问题
+                                                                            // Lua的解决方案就是 在当前这个原子阶段对它们进行重新标记 并完整递归地处理它们引用的子结点(propagateall)
   global_State *g = G(L);
   lu_mem work = 0;
   GCObject *origweak, *origall;
@@ -1544,15 +1551,19 @@ static lu_mem atomic (lua_State *L) {
   /* remark occasional upvalues of (maybe) dead threads */
   work += remarkupvals(g);
   work += propagateall(g);  /* propagate changes */
-  g->gray = grayagain;
-  work += propagateall(g);  /* traverse 'grayagain' list */
-  convergeephemerons(g);
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
+  g->gray = grayagain;                                                      // 消费grayagain链表
+  work += propagateall(g);  /* traverse 'grayagain' list */                 // 消费完
+  convergeephemerons(g);                                                    // 集中处理弱键引用表
+                                                                            //////////////////////////// 此时所有Table的标记均已完成 此时未标记的key或value就是后面清除阶段需要清除的垃圾对象
   /* at this point, all strongly accessible objects are marked. */
   /* Clear values from weak tables, before checking finalizers */
-  clearbyvalues(g, g->weak, NULL);
-  clearbyvalues(g, g->allweak, NULL);
+  clearbyvalues(g, g->weak, NULL);                                          // 弱值引用表 // 若Table中有未被标记的value 则把该value对应的key也设置为无效待清除状态 尽管这个key值可能在标记阶段被标记了
+  clearbyvalues(g, g->allweak, NULL);                                       // 键值弱引用表
+                                                                            //////////////////////////// 此时 所有对象包括Table的标记均已完成 未标记(白色)的对象即为待清除对象
+
   origweak = g->weak; origall = g->allweak;
-  separatetobefnz(g, 0);  /* separate objects to be finalized */
+  separatetobefnz(g, 0);  /* separate objects to be finalized */            // 标记析构器对象
   work += markbeingfnz(g);  /* mark objects that will be finalized */
   work += propagateall(g);  /* remark, to propagate 'resurrection' */
   convergeephemerons(g);
@@ -1563,8 +1574,9 @@ static lu_mem atomic (lua_State *L) {
   /* clear values from resurrected weak tables */
   clearbyvalues(g, g->weak, origweak);
   clearbyvalues(g, g->allweak, origall);
-  luaS_clearcache(g);
-  g->currentwhite = cast_byte(otherwhite(g));  /* flip current white */
+  luaS_clearcache(g);                                                       // 清空字符串缓存g->strcache // 在一轮GC结束后 这些缓存都将在原子阶段中被清空而失效!
+  g->currentwhite = cast_byte(otherwhite(g));  /* flip current white */     // 白色互换 // 假设在原子阶段结束前创建出来的新对象颜色为白1 在原子阶段结束切换白色之后创建出来的新对象为白2
+                                                                            //      在清除阶段清除白1
   lua_assert(g->gray == NULL);
   return work;  /* estimate of slots marked by 'atomic' */
 }
@@ -1609,8 +1621,13 @@ static lu_mem singlestep (lua_State *L) {
         work = propagatemark(g);  /* traverse one gray object */        // hankai3
       break;
     }
-    case GCSenteratomic: {                                              // hankai4 标记阶段的一致性原则 场景: 创建一个新对象(白色) 已经在hankai1/3中标记为黑色的对象引用这个白色对象
-                                                                        // 导致黑色对象引用白色对象 // 然后呢??????
+    case GCSenteratomic: {                                              // hankai4 标记阶段的一致性原则 // 原子即: 不是增量式的 不能分步执行或被打断
+                                                                        // 场景1: 创建一个新对象(白色) 已经在hankai1/3中标记为黑色的对象引用这个白色对象
+                                                                        //      导致黑色对象引用白色对象 然后后退屏障 如果触发后退屏障太多 即产生的灰色对象太多则造成累积 
+                                                                        //      标记传播阶段新增任务量大于能处理的任务量) 导致gray链表永远处理不完
+                                                                        //      所以需要有另一个特殊的灰色链表存储这些使用后退屏障的对象且该链表不能影响标记传播阶段
+                                                                        // 场景2: 弱键引用表 需要一个阶段去等待其它对象处理完毕才能启动它的值标记流程
+                                                                        //      因为在键未被标记的情况下Table自身是不允许标记它的值的
       work = atomic(L);  /* work is what was traversed by 'atomic' */
       entersweep(L);
       g->GCestimate = gettotalbytes(g);  /* first estimate */;
