@@ -828,21 +828,21 @@ static void freeobj (lua_State *L, GCObject *o) {           // 不同的对象�
 ** collection cycle. Return where to continue the traversal or NULL if
 ** list is finished. ('*countout' gets the number of elements traversed.)
 */
-static GCObject **sweeplist (lua_State *L, GCObject **p, int countin,
-                             int *countout) {
+static GCObject **sweeplist (lua_State *L, GCObject **p, int countin/*允许处理的最大对象个数*/,
+                             int *countout) {                   // 函数的返回值为下一个要处理的对象的指针
   global_State *g = G(L);
-  int ow = otherwhite(g);
+  int ow = otherwhite(g);                                       // 其它白(即未标记的垃圾对象)
   int i;
   int white = luaC_white(g);  /* current white */
   for (i = 0; *p != NULL && i < countin; i++) {
     GCObject *curr = *p;
     int marked = curr->marked;
-    if (isdeadm(ow, marked)) {  /* is 'curr' dead? */
-      *p = curr->next;  /* remove 'curr' from list */
-      freeobj(L, curr);  /* erase 'curr' */
+    if (isdeadm(ow, marked)) {  /* is 'curr' dead? */           // 当前对象是"其它白"
+      *p = curr->next;  /* remove 'curr' from list */           // 从链表上移除
+      freeobj(L, curr);  /* erase 'curr' */                     // 释放资源
     }
-    else {  /* change mark to 'white' */
-      curr->marked = cast_byte((marked & ~maskgcbits) | white);
+    else {  /* change mark to 'white' */                        // 如果当前对象被标记了: 可能是黑色/当前白(原子阶段后创建的对象)
+      curr->marked = cast_byte((marked & ~maskgcbits) | white); // 重置当前对象 为当前白 仍挂链表上
       p = &curr->next;  /* go to next element */
     }
   }
