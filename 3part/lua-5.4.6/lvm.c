@@ -328,7 +328,7 @@ void luaV_finishget (lua_State *L, const TValue *t, TValue *key, StkId val,     
 ** 'luaV_fastget' would have done the job.)
 */
 void luaV_finishset (lua_State *L, const TValue *t, TValue *key,
-                     TValue *val, const TValue *slot) {                             // Table在一个Key或数组下标设置一个Value
+                     TValue *val, const TValue *slot) {                             // hankai3.0 Table在一个Key或数组下标设置一个Value
   int loop;  /* counter to avoid infinite loops */
   for (loop = 0; loop < MAXTAGLOOP; loop++) {
     const TValue *tm;  /* '__newindex' metamethod */
@@ -1864,7 +1864,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通�
           TValue *val = s2v(ra + n);
           setobj2t(L, &h->array[last - 1], val);
           last--;
-          luaC_barrierback(L, obj2gco(h), val);                                       // 场景同lapi.c:aux_rawset 后退屏障
+          luaC_barrierback(L, obj2gco(h), val);                                       // hankai3.0 场景同lapi.c:aux_rawset 后退屏障
         }
         vmbreak;
       }

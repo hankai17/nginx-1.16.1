@@ -893,7 +893,7 @@ LUA_API void lua_seti (lua_State *L, int idx, lua_Integer n) {
 }
 
 
-static void aux_rawset (lua_State *L, int idx, TValue *key, int n) {        // 设置Table中一个键值对的数据
+static void aux_rawset (lua_State *L, int idx, TValue *key, int n) {        // hankai3.0 设置Table中一个键值对的数据
   Table *t;
   lua_lock(L);
   api_checknelems(L, n);
@@ -919,7 +919,7 @@ LUA_API void lua_rawsetp (lua_State *L, int idx, const void *p) {
 }
 
 
-LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {           // 设置Table中数组部分一个下标对应的数值
+LUA_API void lua_rawseti (lua_State *L, int idx, lua_Integer n) {           // hankai3.0 设置Table中数组部分一个下标对应的数值
   Table *t;
   lua_lock(L);
   api_checknelems(L, 1);
@@ -971,7 +971,7 @@ LUA_API int lua_setmetatable (lua_State *L, int objindex) {
 }
 
 
-LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {  // 设置UValue数组元素
+LUA_API int lua_setiuservalue (lua_State *L, int idx, int n) {  // hankai3.0 设置UValue数组元素
   TValue *o;
   int res;
   lua_lock(L);

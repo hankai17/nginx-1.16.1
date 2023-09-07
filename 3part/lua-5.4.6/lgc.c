@@ -227,7 +227,7 @@ void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {                   
 ** barrier that moves collector backward, that is, mark the black object
 ** pointing to a white object as gray again.
 */
-void luaC_barrierback_ (lua_State *L, GCObject *o) {                            // 后退屏障: 把引用该白色对象的黑色对象修改回灰色 // 处理Table和UserData时使用后退屏障
+void luaC_barrierback_ (lua_State *L, GCObject *o) {                            // hankai3.0 后退屏障: 把引用该白色对象的黑色对象修改回灰色 // 处理Table和UserData时使用后退屏障
                                                                                 // 然后在GC颜色传播(propagatemark)阶段时被处理 颜色传播阶段使用债务管理算法控制每一轮的起始与结束
                                                                                 // 能很好地控制每一轮的工作量 不会导致突然性的处理量加重 所以后退屏障能很好的保持GC的性能稳定
   global_State *g = G(L);
@@ -828,10 +828,10 @@ static void freeobj (lua_State *L, GCObject *o) {           // 不同的对象�
 ** collection cycle. Return where to continue the traversal or NULL if
 ** list is finished. ('*countout' gets the number of elements traversed.)
 */
-static GCObject **sweeplist (lua_State *L, GCObject **p, int countin/*允许处理的最大对象个数*/,
-                             int *countout) {                   // 函数的返回值为下一个要处理的对象的指针
+static GCObject **sweeplist (lua_State *L, GCObject **p,        // 如果是该删除的obj则删除掉 同时更新g->allgc 如果是新对象或正在使用的对象则处理下一个
+        int countin/*允许处理的最大对象个数*/, int *countout) { // hankai4.2.2 函数的返回值为下一个要处理的对象的指针
   global_State *g = G(L);
-  int ow = otherwhite(g);                                       // 其它白(即未标记的垃圾对象)
+  int ow = otherwhite(g);                                       // 其它白(即未标记的垃圾对象 原子阶段前标记的白)
   int i;
   int white = luaC_white(g);  /* current white */
   for (i = 0; *p != NULL && i < countin; i++) {
@@ -841,7 +841,7 @@ static GCObject **sweeplist (lua_State *L, GCObject **p, int countin/*允许处�
       *p = curr->next;  /* remove 'curr' from list */           // 从链表上移除
       freeobj(L, curr);  /* erase 'curr' */                     // 释放资源
     }
-    else {  /* change mark to 'white' */                        // 如果当前对象被标记了: 可能是黑色/当前白(原子阶段后创建的对象)
+    else {  /* change mark to 'white' */                        // 如果当前对象被标记了: 可能是黑色/当前白(luaC_newobjdt: 原子阶段后创建的对象)
       curr->marked = cast_byte((marked & ~maskgcbits) | white); // 重置当前对象 为当前白 仍挂链表上
       p = &curr->next;  /* go to next element */
     }
@@ -855,11 +855,18 @@ static GCObject **sweeplist (lua_State *L, GCObject **p, int countin/*允许处�
 /*
 ** sweep a list until a live object (or end of list)
 */
-static GCObject **sweeptolive (lua_State *L, GCObject **p) {
+                                                                //      g->allgc: obj1 -> obj2 -> obj3 -> obj4 -> obj5 -> ... -> objn
+                                                                //                假设obj1~3是要删除的没有被标记的白色节点 obj4是被标记的黑色节点
+                                                                //                循环1轮 allgc指向obj2 p不变
+                                                                //                循环2轮 allgc指向obj3 p不变
+                                                                //                循环3轮 allgc指向obj4 p指向obj5 sweepgc指向obj5
+
+
+static GCObject **sweeptolive (lua_State *L, GCObject **p) {    // hankai4.2.1
   GCObject **old = p;
   do {
-    p = sweeplist(L, p, 1, NULL);
-  } while (p == old);
+    p = sweeplist(L, p, 1, NULL);                               // 清理n多轮 每轮最多清理一个
+  } while (p == old);                                           // 直到找到一个已标记的存活对象就结束
   return p;
 }
 
@@ -1490,11 +1497,11 @@ static void genstep (lua_State *L, global_State *g) {
 ** not need to skip objects created between "now" and the start of the
 ** real sweep.
 */
-static void entersweep (lua_State *L) {                                     // 清除阶段
+static void entersweep (lua_State *L) {                                     // hankai4.2.0 清除阶段
   global_State *g = G(L);
   g->gcstate = GCSswpallgc;
   lua_assert(g->sweepgc == NULL);
-  g->sweepgc = sweeptolive(L, &g->allgc);                                   // 遍历全局gc链表
+  g->sweepgc = sweeptolive(L, &g->allgc);                                   // 遍历全局gc链表   // sweepgc指向 g->allgc链表中下一个需要处理的对象
 }
 
 
@@ -1529,7 +1536,7 @@ void luaC_freeallobjects (lua_State *L) {
 }
 
 
-static lu_mem atomic (lua_State *L) {
+static lu_mem atomic (lua_State *L) {                                       // hankai4.1
   //////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////        
                                                                             // 重新进行标记 它们分别是mainthread l_registry mt twups
                                                                             // 这几个字段它们在GC算法中其实是没有父结点 被修改/替换后直接变成了白色对象 
@@ -1607,7 +1614,7 @@ static lu_mem singlestep (lua_State *L) {
   switch (g->gcstate) {
     /////////////////////////////////////////标记////////////////////////////////////////////////////
     case GCSpause: {                                            
-      restartcollection(g);                                             // hankai1
+      restartcollection(g);                                             // hankai1      // 生产灰色链表++++++
       g->gcstate = GCSpropagate;
       work = 1;
       break;
@@ -1618,7 +1625,7 @@ static lu_mem singlestep (lua_State *L) {
         work = 0;
       }
       else
-        work = propagatemark(g);  /* traverse one gray object */        // hankai3
+        work = propagatemark(g);  /* traverse one gray object */        // hankai3      // 消费灰色链表------ + 生产grayagain链表++++++
       break;
     }
     case GCSenteratomic: {                                              // hankai4 标记阶段的一致性原则 // 原子即: 不是增量式的 不能分步执行或被打断
@@ -1628,15 +1635,15 @@ static lu_mem singlestep (lua_State *L) {
                                                                         //      所以需要有另一个特殊的灰色链表存储这些使用后退屏障的对象且该链表不能影响标记传播阶段
                                                                         // 场景2: 弱键引用表 需要一个阶段去等待其它对象处理完毕才能启动它的值标记流程
                                                                         //      因为在键未被标记的情况下Table自身是不允许标记它的值的
-      work = atomic(L);  /* work is what was traversed by 'atomic' */
-      entersweep(L);
+      work = atomic(L);  /* work is what was traversed by 'atomic' */   // hankai4.1
+      entersweep(L);                                                    // hankai4.2清除阶段
       g->GCestimate = gettotalbytes(g);  /* first estimate */;
       break;
     }
 
     //////////////////////////////////////////清除///////////////////////////////////////////////////
     case GCSswpallgc: {  /* sweep "regular" objects */
-      work = sweepstep(L, g, GCSswpfinobj, &g->finobj);
+      work = sweepstep(L, g, GCSswpfinobj, &g->finobj);                 // 
       break;
     }
     case GCSswpfinobj: {  /* sweep objects with finalizers */

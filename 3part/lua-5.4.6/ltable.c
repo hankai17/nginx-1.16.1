@@ -665,7 +665,7 @@ static Node *getfreepos (Table *t) {
 ** put new key in its main position; otherwise (colliding node is in its main
 ** position), new key goes to an empty position.
 */
-void luaH_newkey (lua_State *L, Table *t, const TValue *key, TValue *value) {   // Table添加一个键
+void luaH_newkey (lua_State *L, Table *t, const TValue *key, TValue *value) {   // hankai3.0 Table添加一个键
   Node *mp;
   TValue aux;
   if (l_unlikely(ttisnil(key)))
