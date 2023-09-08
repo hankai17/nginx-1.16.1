@@ -208,7 +208,7 @@ static int iscleared (global_State *g, const GCObject *o) {
 void luaC_barrier_ (lua_State *L, GCObject *o, GCObject *v) {                   // 前向屏障: 对被黑色对象引用的白色对象 标记为灰色或黑色 // 大部分情况下都是使用前向屏障
   global_State *g = G(L);
   lua_assert(isblack(o) && iswhite(v) && !isdead(g, v) && !isdead(g, o));
-  if (keepinvariant(g)) {  /* must keep invariant? */                           // 判断当前阶段是否需要保证一致性原则的宏
+  if (keepinvariant(g)) {  /* must keep invariant? */                           // 判断当前阶段是否需要保证一致性原则的宏 // 新节点判断
     reallymarkobject(g, v);  /* restore invariant */                            // 对这个白色对象 染色  // 数据越多 本次前向屏障的执行时间越长 ???
     if (isold(o)) {
       lua_assert(!isold(v));  /* white object could not be old */
@@ -884,9 +884,9 @@ static GCObject **sweeptolive (lua_State *L, GCObject **p) {    // hankai4.2.1
 */
 static void checkSizes (lua_State *L, global_State *g) {
   if (!g->gcemergency) {
-    if (g->strt.nuse < g->strt.size / 4) {  /* string table too big? */
+    if (g->strt.nuse < g->strt.size / 4) {  /* string table too big? */     // 若它已经减小到不足哈希表容量size的4分之1了，代表此时哈希表利用率较低
       l_mem olddebt = g->GCdebt;
-      luaS_resize(L, g->strt.size / 2);
+      luaS_resize(L, g->strt.size / 2);                                     // 每次会把容量降到原来的2分之1
       g->GCestimate += g->GCdebt - olddebt;  /* correct estimate */
     }
   }
@@ -953,7 +953,7 @@ static int runafewfinalizers (lua_State *L, int n) {
   global_State *g = G(L);
   int i;
   for (i = 0; i < n && g->tobefnz; i++)
-    GCTM(L);  /* call one finalizer */
+    GCTM(L);  /* call one finalizer */                  // 调用析构函数
   return i;
 }
 
@@ -1560,7 +1560,7 @@ static lu_mem atomic (lua_State *L) {                                       // h
   work += propagateall(g);  /* propagate changes */
   ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////// 
   g->gray = grayagain;                                                      // 消费grayagain链表
-  work += propagateall(g);  /* traverse 'grayagain' list */                 // 消费完
+  work += propagateall(g);  /* traverse 'grayagain' list */                 // 必须消费完
   convergeephemerons(g);                                                    // 集中处理弱键引用表
                                                                             //////////////////////////// 此时所有Table的标记均已完成 此时未标记的key或value就是后面清除阶段需要清除的垃圾对象
   /* at this point, all strongly accessible objects are marked. */
@@ -1589,18 +1589,18 @@ static lu_mem atomic (lua_State *L) {                                       // h
 }
 
 
-static int sweepstep (lua_State *L, global_State *g,
+static int sweepstep (lua_State *L, global_State *g,                        // hankai5 // 第3/4个参数分别代表处理完之后要切换到的下一个阶段的枚举值和下一个阶段将要被清除的链表
                       int nextstate, GCObject **nextlist) {
   if (g->sweepgc) {
     l_mem olddebt = g->GCdebt;
     int count;
-    g->sweepgc = sweeplist(L, g->sweepgc, GCSWEEPMAX, &count);
-    g->GCestimate += g->GCdebt - olddebt;  /* update estimate */
+    g->sweepgc = sweeplist(L, g->sweepgc, GCSWEEPMAX, &count);              // 即当前函数最多处理100个
+    g->GCestimate += g->GCdebt - olddebt;  /* update estimate */            // 更新g->GCestimate
     return count;
   }
-  else {  /* enter next state */
+  else {  /* enter next state */                                            // 链表中对象全部处理完毕
     g->gcstate = nextstate;
-    g->sweepgc = nextlist;
+    g->sweepgc = nextlist;                                                  // 指向下一个需要被处理的链表
     return 0;  /* no work done */
   }
 }
@@ -1643,30 +1643,30 @@ static lu_mem singlestep (lua_State *L) {
 
     //////////////////////////////////////////清除///////////////////////////////////////////////////
     case GCSswpallgc: {  /* sweep "regular" objects */
-      work = sweepstep(L, g, GCSswpfinobj, &g->finobj);                 // 
+      work = sweepstep(L, g, GCSswpfinobj, &g->finobj);                 // hankai5
       break;
     }
     case GCSswpfinobj: {  /* sweep objects with finalizers */
-      work = sweepstep(L, g, GCSswptobefnz, &g->tobefnz);
+      work = sweepstep(L, g, GCSswptobefnz, &g->tobefnz);               // 析构器相关
       break;
     }
     case GCSswptobefnz: {  /* sweep objects to be finalized */
-      work = sweepstep(L, g, GCSswpend, NULL);
+      work = sweepstep(L, g, GCSswpend, NULL);                          // 析构器相关
       break;
     }
-    case GCSswpend: {  /* finish sweeps */
-      checkSizes(L, g);
+    case GCSswpend: {  /* finish sweeps */                              // 清除结束阶段
+      checkSizes(L, g);                                                 // 对字符串缓存进行检测回收
       g->gcstate = GCScallfin;
-      work = 0;
+      work = 0;                                                         // 由于处理简单 这里直接令work为0 在债务管理算法中相当于告诉GC本步执行可以看作没有做任何工作量 需要继续下一步的执行以完成未达到的工作量指标
       break;
     }
-    case GCScallfin: {  /* call remaining finalizers */
+    case GCScallfin: {  /* call remaining finalizers */                 // 调用析构器阶段 // 对g->tobefnz清理
       if (g->tobefnz && !g->gcemergency) {
         g->gcstopem = 0;  /* ok collections during finalizers */
-        work = runafewfinalizers(L, GCFINMAX) * GCFINALIZECOST;
+        work = runafewfinalizers(L, GCFINMAX) * GCFINALIZECOST;         // 执行10个析构器函数 // 执行一次(执行10个析构函数)析构器的性能花销预估 大概会跟遍历50个对象一样
       }
       else {  /* emergency mode or no more finalizers */
-        g->gcstate = GCSpause;  /* finish collection */
+        g->gcstate = GCSpause;  /* finish collection */                 // 恢复到初始的GCSpause阶段 等待下一次GC触发
         work = 0;
       }
       break;

@@ -288,13 +288,14 @@ typedef struct global_State {                                                   
   lu_byte gcstepsize;  /* (log2 of) GC granularity */
   GCObject *allgc;  /* list of all collectable objects */                               // lgc.c:luaC_newobj 将所有分配的对象挂到这里               // 
   GCObject **sweepgc;  /* current position of sweep in list */
-  GCObject *finobj;  /* list of collectable objects with finalizers */
+  GCObject *finobj;  /* list of collectable objects with finalizers */                  // 析构器相关: 所有带有未触发的析构器对象
   GCObject *gray;  /* list of gray objects */
   GCObject *grayagain;  /* list of objects to be traversed atomically */
   GCObject *weak;  /* list of tables with weak values */
   GCObject *ephemeron;  /* list of ephemeron tables (weak keys) */
   GCObject *allweak;  /* list of all-weak tables */
-  GCObject *tobefnz;  /* list of userdata to be GC */
+  GCObject *tobefnz;  /* list of userdata to be GC */                                   // 析构器相关: 当finobj中的对象因为未标记将要被释放时 会在原子阶段把它们从g->finobj链表移出
+                                                                                        // 并移入tobefnz中 并在原子阶段对tobefnz所有的元素标记 确保在GC最后的析构器执行阶段之前 不会因未标记而在清除阶段被清除
   GCObject *fixedgc;  /* list of objects not to be collected */
   /* fields for generational collector */
   GCObject *survival;  /* start of objects that survived one GC cycle */
