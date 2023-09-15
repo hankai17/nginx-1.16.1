@@ -1086,21 +1086,21 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
 }
 
 
-LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,
+LUA_API int lua_load (lua_State *L, lua_Reader reader, void *data,      // 加载文件/代码块
                       const char *chunkname, const char *mode) {
   ZIO z;
   int status;
   lua_lock(L);
   if (!chunkname) chunkname = "?";
   luaZ_init(L, &z, reader, data);
-  status = luaD_protectedparser(L, &z, chunkname, mode);
+  status = luaD_protectedparser(L, &z, chunkname, mode);                // 最终调用luaY_parser
   if (status == LUA_OK) {  /* no errors? */
     LClosure *f = clLvalue(s2v(L->top.p - 1));  /* get new function */
     if (f->nupvalues >= 1) {  /* does it have an upvalue? */
       /* get global table from registry */
       const TValue *gt = getGtable(L);
       /* set global table as 1st upvalue of 'f' (may be LUA_ENV) */
-      setobj(L, f->upvals[0]->v.p, gt);
+      setobj(L, f->upvals[0]->v.p, gt);                                 // 把Lua闭包第一个UpValue设置为_G表
       luaC_barrier(L, f->upvals[0], gt);
     }
   }

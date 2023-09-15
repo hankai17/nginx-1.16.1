@@ -1842,7 +1842,8 @@ static void retstat (LexState *ls) {
 }
 
 
-static void statement (LexState *ls) {
+static void statement (LexState *ls) {                                  // lua代码Chunk解析的核心
+                                                                        // 一个一个字符地处理Lua代码 完成词/语法分析工作 // 涉及编译原理
   int line = ls->linenumber;  /* may be needed for error messages */
   enterlevel(ls);
   switch (ls->t.token) {
@@ -1926,11 +1927,12 @@ static void mainfunc (LexState *ls, FuncState *fs) {
   Upvaldesc *env;
   open_func(ls, fs, &bl);
   setvararg(fs, 0);  /* main function is always declared vararg */
-  env = allocupvalue(fs);  /* ...set environment upvalue */
+  env = allocupvalue(fs);  /* ...set environment upvalue */                     // 每一个Lua闭包它们第一个UpValue值都是_ENV
+                                                                                //  所谓_ENV: 指向Lua虚拟机的全局变量_G表 _G表是Lua文件中代码运行环境
   env->instack = 1;
   env->idx = 0;
   env->kind = VDKREG;
-  env->name = ls->envn;
+  env->name = ls->envn;                                                         // llex.c:luaX_setinput 
   luaC_objbarrier(ls->L, fs->f, env->name);
   luaX_next(ls);  /* read first token */
   statlist(ls);  /* parse main body */
@@ -1939,11 +1941,12 @@ static void mainfunc (LexState *ls, FuncState *fs) {
 }
 
 
-LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
-                       Dyndata *dyd, const char *name, int firstchar) {
+LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,                     // 先载入Lua代码Chunk到内存中   // 解析器的入口函数 负责完成代码解析 最终创建并返回一个Lua闭包LClosure
+                       Dyndata *dyd, const char *name, int firstchar) {         //  Lua文件的载入: require函数 或 loadfile函数
+                                                                                //  Lua文本代码块的载入: load函数
   LexState lexstate;
   FuncState funcstate;
-  LClosure *cl = luaF_newLclosure(L, 1);  /* create main closure */
+  LClosure *cl = luaF_newLclosure(L, 1);  /* create main closure */             // 分配lua闭包
   setclLvalue2s(L, L->top.p, cl);  /* anchor it (to avoid being collected) */
   luaD_inctop(L);
   lexstate.h = luaH_new(L);  /* create table for scanner */
@@ -1957,7 +1960,11 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,
   lexstate.dyd = dyd;
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
-  mainfunc(&lexstate, &funcstate);
+  mainfunc(&lexstate, &funcstate);                                              // 调用statement进行词/语法分析 把解析结果放到LClosure中 给后续执行器使用
+                                                                                // 闭包中存的是lua的 "代码段" “数据段”
+                                                                                // Lua闭包由Proto(代码段) + upval(数据段)构成
+                                                                                // 解析器翻译成Lua虚拟机能识别的指令 我们把这些指令称为"OpCode" 也叫"操作码" 存放在Proto->code中
+                                                                                // ua虚拟机的工作: 就是为当前函数(或当前一段OpCode数组)准备好数据 然后有序执行OpCode指令
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
   lua_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
