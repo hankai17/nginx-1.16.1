@@ -4326,7 +4326,7 @@ ngx_http_proxy_set_ssl(ngx_conf_t *cf, ngx_http_proxy_loc_conf_t *plcf)     // n
     }
 
     if (ngx_ssl_client_session_cache(cf, plcf->upstream.ssl,
-                                     plcf->upstream.ssl_session_reuse)  // 打开
+                                     plcf->upstream.ssl_session_reuse)  // 打开session_reuse // 设置ssl建链后回调 ngx_ssl_new_client 回调里调save_session
         != NGX_OK)
     {
         return NGX_ERROR;

@@ -477,7 +477,7 @@ ngx_http_upstream_keepalive_set_session(ngx_peer_connection_t *pc, void *data)
 {
     ngx_http_upstream_keepalive_peer_data_t  *kp = data;
 
-    return kp->original_set_session(pc, kp->data);
+    return kp->original_set_session(pc, kp->data);                                  // 默认(没有插件的情况下)调用原始的set_session: ngx_http_upstream_set_round_robin_peer_session
 }
 
 
@@ -486,7 +486,7 @@ ngx_http_upstream_keepalive_save_session(ngx_peer_connection_t *pc, void *data)
 {
     ngx_http_upstream_keepalive_peer_data_t  *kp = data;
 
-    kp->original_save_session(pc, kp->data);
+    kp->original_save_session(pc, kp->data);                                        // 默认调用原始的save_session
     return;
 }
 

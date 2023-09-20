@@ -1589,7 +1589,7 @@ ngx_ssl_get0_session(ngx_connection_t *c)
 
 
 ngx_int_t
-ngx_ssl_set_session(ngx_connection_t *c, ngx_ssl_session_t *session)
+ngx_ssl_set_session(ngx_connection_t *c, ngx_ssl_session_t *session)            // 给ssl链接设置session
 {
     if (session) {
         if (SSL_set_session(c->ssl->connection, session) == 0) {

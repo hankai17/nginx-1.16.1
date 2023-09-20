@@ -1657,7 +1657,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u) // 4UPS
 #if (NGX_HTTP_SSL)
 
 static void
-ngx_http_upstream_ssl_init_connection(ngx_http_request_t *r,
+ngx_http_upstream_ssl_init_connection(ngx_http_request_t *r,    // 建连后或从池里拿到一个链接 见上面这个函数
     ngx_http_upstream_t *u, ngx_connection_t *c)
 {
     ngx_int_t                  rc;
@@ -1691,7 +1691,7 @@ ngx_http_upstream_ssl_init_connection(ngx_http_request_t *r,
     if (u->conf->ssl_session_reuse) {
         c->ssl->save_session = ngx_http_upstream_ssl_save_session;
 
-        if (u->peer.set_session(&u->peer, u->peer.data) != NGX_OK) {
+        if (u->peer.set_session(&u->peer, u->peer.data) != NGX_OK) {            // 第一次调用时候session为空 // 如果从池里拿到一个链接那么就用这个链接的session ?
             ngx_http_upstream_finalize_request(r, u,
                                                NGX_HTTP_INTERNAL_SERVER_ERROR);
             return;
