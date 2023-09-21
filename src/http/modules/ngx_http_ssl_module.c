@@ -696,7 +696,7 @@ ngx_http_ssl_merge_srv_conf(ngx_conf_t *cf, void *parent, void *child)
         }
     }
 
-    if (ngx_ssl_create(&conf->ssl, conf->protocols, conf) != NGX_OK) {
+    if (ngx_ssl_create(&conf->ssl, conf->protocols, conf) != NGX_OK) {          // 创建server块级别的ssl
         return NGX_CONF_ERROR;
     }
 

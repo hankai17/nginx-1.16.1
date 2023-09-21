@@ -748,7 +748,7 @@ ngx_http_ssl_handshake(ngx_event_t *rev)
             sscf = ngx_http_get_module_srv_conf(hc->conf_ctx,
                                                 ngx_http_ssl_module);
 
-            if (ngx_ssl_create_connection(&sscf->ssl, c, NGX_SSL_BUFFER)
+            if (ngx_ssl_create_connection(&sscf->ssl, c, NGX_SSL_BUFFER)        // 参数1这个ssl是server块级别的 而非链接级别的
                 != NGX_OK)
             {
                 ngx_http_close_connection(c);
