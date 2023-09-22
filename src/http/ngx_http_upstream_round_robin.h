@@ -22,6 +22,13 @@ struct ngx_http_upstream_rr_peer_s {
     ngx_str_t                       name;
     ngx_str_t                       server;
 
+    ngx_str_t                       id;
+
+
+
+    ngx_str_t                       host;
+
+
     ngx_int_t                       current_weight;
     ngx_int_t                       effective_weight;
     ngx_int_t                       weight;
@@ -48,6 +55,9 @@ struct ngx_http_upstream_rr_peer_s {
 #if (NGX_HTTP_UPSTREAM_ZONE)
     ngx_atomic_t                    lock;
 #endif
+
+    ngx_uint_t                      check_index;
+
 
     ngx_http_upstream_rr_peer_t    *next;
 

@@ -28,7 +28,7 @@ static void ngx_http_upstream_empty_save_session(ngx_peer_connection_t *pc,
 
 
 ngx_int_t
-ngx_http_upstream_init_round_robin(ngx_conf_t *cf, // 调用时机是init main configuration(参考ngx_http.c)中 ngx_http_upstream_init_main_conf // 即如果没有自定义的peer_init_stream则调用此
+ngx_http_upstream_init_round_robin(ngx_conf_t *cf, // 调用时机是init main configuration(参考ngx_http.c:263)中 ngx_http_upstream_init_main_conf // 即如果没有自定义的peer_init_stream则调用此
     ngx_http_upstream_srv_conf_t *us)
 {
     ngx_url_t                      u;
@@ -37,7 +37,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf, // 调用时机是init main c
     ngx_http_upstream_rr_peer_t   *peer, **peerp;
     ngx_http_upstream_rr_peers_t  *peers, *backup;
 
-    us->peer.init = ngx_http_upstream_init_round_robin_peer;    // 设置peer_init
+    us->peer.init = ngx_http_upstream_init_round_robin_peer;    // 设置peer_init // 建联前夕调用 4UPSTREAM ngx_http_upstream_init_round_robin_peer初始化pc的get/free/try
 
     if (us->servers) {
         server = us->servers->elts;
@@ -296,7 +296,7 @@ ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r, // 建联前夕 4
 
 
 ngx_int_t
-ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
+ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,    // 调用时机?
     ngx_http_upstream_resolved_t *ur)
 {
     u_char                            *p;
@@ -414,7 +414,7 @@ ngx_http_upstream_create_round_robin_peer(ngx_http_request_t *r,
 
 
 ngx_int_t
-ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data) // 建联函数ngx_event_connect中调用 进行失败统计等
+ngx_http_upstream_get_round_robin_peer(ngx_peer_connection_t *pc, void *data) // 建联函数ngx_event_connect中调用 主要作用是进行失败统 选一个peer 注意rr的这个peer是没有建链的仅仅是重置了pc中的(os)ip地址(返回的是OK而非keepalive中的done)
 {
     ngx_http_upstream_rr_peer_data_t  *rrp = data;
 
@@ -659,7 +659,9 @@ ngx_http_upstream_free_round_robin_peer(ngx_peer_connection_t *pc, void *data, /
 #if (NGX_HTTP_SSL)
 
 ngx_int_t
-ngx_http_upstream_set_round_robin_peer_session(ngx_peer_connection_t *pc,
+ngx_http_upstream_set_round_robin_peer_session(ngx_peer_connection_t *pc,       // 如果第一次调用 则没啥用 
+                                                                                // 如果从池里拿到一个链接peer 上的ssl_session非空 那么就设置给当前链接 当前链接一旦设置好后那么就不会触发下面的save回调
+                                                                                // roundrobin用的是短链接 roundrobin中的peer代表源站 不是链接的意思
     void *data)
 {
     ngx_http_upstream_rr_peer_data_t  *rrp = data;
@@ -715,7 +717,7 @@ ngx_http_upstream_set_round_robin_peer_session(ngx_peer_connection_t *pc,
 
     ssl_session = peer->ssl_session;
 
-    rc = ngx_ssl_set_session(pc->connection, ssl_session);
+    rc = ngx_ssl_set_session(pc->connection, ssl_session);                      // 把peer这个源站的ssl_session设置到 具体的链接上
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, pc->log, 0,
                    "set session: %p", ssl_session);
@@ -723,9 +725,30 @@ ngx_http_upstream_set_round_robin_peer_session(ngx_peer_connection_t *pc,
     return rc;
 }
 
+/*
+ngx_http_upstream_save_round_robin_peer_session
+ngx_http_upstream_keepalive_save_session
+ngx_http_upstream_ssl_save_session
+ngx_ssl_new_client_session
+ssl_update_cache
+tls_finish_handshake
+state_machine.part
+SSL_do_handshake
+ngx_ssl_handshake
+
+ngx_http_upstream_session_sticky_save_peer_session
+ngx_http_upstream_ssl_save_session
+ngx_ssl_new_client_session
+ssl_update_cache
+tls_finish_handshake
+state_machine.part
+SSL_do_handshake
+ngx_ssl_handshake
+ngx_ssl_handshake_handler
+*/
 
 void
-ngx_http_upstream_save_round_robin_peer_session(ngx_peer_connection_t *pc,
+ngx_http_upstream_save_round_robin_peer_session(ngx_peer_connection_t *pc,      // 保存一个协商好的新session
     void *data)
 {
     ngx_http_upstream_rr_peer_data_t  *rrp = data;

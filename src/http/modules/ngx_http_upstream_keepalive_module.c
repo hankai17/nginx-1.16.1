@@ -238,7 +238,7 @@ ngx_http_upstream_get_keepalive_peer(ngx_peer_connection_t *pc, void *data)
 
     /* ask balancer */
 
-    rc = kp->original_get_peer(pc, kp->data);
+    rc = kp->original_get_peer(pc, kp->data);                                       // 先调用rr模块 选一个os ip地址
 
     if (rc != NGX_OK) {
         return rc;
@@ -255,7 +255,7 @@ ngx_http_upstream_get_keepalive_peer(ngx_peer_connection_t *pc, void *data)
         item = ngx_queue_data(q, ngx_http_upstream_keepalive_cache_t, queue);
         c = item->connection;
 
-        if (ngx_memn2cmp((u_char *) &item->sockaddr, (u_char *) pc->sockaddr,
+        if (ngx_memn2cmp((u_char *) &item->sockaddr, (u_char *) pc->sockaddr,       // pc中的(os)ip地址是在rr模块中重置的
                          item->socklen, pc->socklen)
             == 0)
         {
