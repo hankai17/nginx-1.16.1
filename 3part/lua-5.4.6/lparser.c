@@ -1961,10 +1961,10 @@ LClosure *luaY_parser (lua_State *L, ZIO *z, Mbuffer *buff,                     
   dyd->actvar.n = dyd->gt.n = dyd->label.n = 0;
   luaX_setinput(L, &lexstate, z, funcstate.f->source, firstchar);
   mainfunc(&lexstate, &funcstate);                                              // 调用statement进行词/语法分析 把解析结果放到LClosure中 给后续执行器使用
-                                                                                // 闭包中存的是lua的 "代码段" “数据段”
+                                                                                // 闭包中存的是lua的 "代码段" "数据段"
                                                                                 // Lua闭包由Proto(代码段) + upval(数据段)构成
                                                                                 // 解析器翻译成Lua虚拟机能识别的指令 我们把这些指令称为"OpCode" 也叫"操作码" 存放在Proto->code中
-                                                                                // ua虚拟机的工作: 就是为当前函数(或当前一段OpCode数组)准备好数据 然后有序执行OpCode指令
+                                                                                // lua虚拟机的工作: 就是为当前函数(或当前一段OpCode数组)准备好数据 然后有序执行OpCode指令
   lua_assert(!funcstate.prev && funcstate.nups == 1 && !lexstate.fs);
   /* all scopes should be correctly finished */
   lua_assert(dyd->actvar.n == 0 && dyd->gt.n == 0 && dyd->label.n == 0);
