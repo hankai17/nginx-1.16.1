@@ -577,6 +577,28 @@ int luaD_pretailcall (lua_State *L, CallInfo *ci, StkId func,                 //
   }
 }
 
+/*
+lua运行时栈
+
++-----+ stack_last
+|     |
+|     |
++-----+ top
+|     |
+|     |
+|-----|
+|     |
+|-----|
+|     |
+|-----|
+| fun |
++-----+ stack
+
+当我们告诉虚拟机执行器要开始准备调用一个Lua函数的时候 虚拟机会把这个Lua函数对应的Lua闭包放到栈顶位置
+然后调luaD_precall 该函数负责准备调用信息 从栈顶的Lua闭包里面 提取出操作Lua运行栈所需要的全部信息
+(这些信息存储于Lua闭包的Proto中) 然后放入到CallInfo中 每个CallInfo存储一个Lua闭包运行时栈相关实时动态信息
+*/
+
 
 /*
 ** Prepares the call to a function (C or Lua). For C functions, also do
@@ -595,7 +617,7 @@ CallInfo *luaD_precall (lua_State *L, StkId func, int nresults) {
     case LUA_VLCF:  /* light C function */
       precallC(L, func, nresults, fvalue(s2v(func)));
       return NULL;
-    case LUA_VLCL: {  /* Lua function */
+    case LUA_VLCL: {  /* Lua function */                                            // 准备CallInfo
       CallInfo *ci;
       Proto *p = clLvalue(s2v(func))->p;
       int narg = cast_int(L->top.p - func) - 1;  /* number of real arguments */
@@ -607,7 +629,8 @@ CallInfo *luaD_precall (lua_State *L, StkId func, int nresults) {
       for (; narg < nfixparams; narg++)
         setnilvalue(s2v(L->top.p++));  /* complete missing arguments */
       lua_assert(ci->top.p <= L->stack_last.p);
-      return ci;
+      return ci;                                                                    // 当CallInfo准备完成后 虚拟机执行器就会
+                                                                                    // 以CallInfo为单元真正去发起一次Lua函数调用 见ccall
     }
     default: {  /* not a function */
       func = luaD_tryfuncTM(L, func);  /* try to get '__call' metamethod */
@@ -635,7 +658,8 @@ l_sinline void ccall (lua_State *L, StkId func, int nResults, l_uint32 inc) {
   }
   if ((ci = luaD_precall(L, func, nResults)) != NULL) {  /* Lua function? */
     ci->callstatus = CIST_FRESH;  /* mark that it is a "fresh" execute */
-    luaV_execute(L, ci);  /* call it */
+    luaV_execute(L, ci);  /* call it */                                             // 传入callinfo开始执行 
+                                                                                    // 执行器的指令执行入口 负责处理所有的操作指令
   }
   L->nCcalls -= inc;
 }

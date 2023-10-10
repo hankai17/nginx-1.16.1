@@ -175,14 +175,17 @@ typedef struct stringtable {                // 用来缓存短字符串
 ** before the function starts or after it ends.
 */
 struct CallInfo {
-  StkIdRel func;  /* function index in the stack */
-  StkIdRel	top;  /* top for this function */
-  struct CallInfo *previous, *next;  /* dynamic call link */
+  StkIdRel func;  /* function index in the stack */                         // 函数地址指针 指向CallInfo对应的Lua闭包在运行栈中的位置 CallInfo初始化的时候赋值运行时不变
+  StkIdRel	top;  /* top for this function */                               // 函数在栈中的顶部指针 函数在执行的时候有可能会需要继续往运行栈中插入数据
+                                                                            // 插入数据的时候Lua运行栈的top指针会往上(顶部)移动 而CallInfo的top指针指向
+                                                                            // 插入数据后会到达的最高的Lua运行栈的位置(运行后lua_State的top最大值) CallInfo初始化的时候赋值运行时不变。
+  struct CallInfo *previous, *next;  /* dynamic call link */                // 
   union {
-    struct {  /* only for Lua functions */
-      const Instruction *savedpc;
-      volatile l_signalT trap;
-      int nextraargs;  /* # of extra arguments in vararg functions */
+    struct {  /* only for Lua functions */                                  // 用于存储Lua闭包运行时的信息
+      const Instruction *savedpc;                                           // 记录当前虚拟机执行器执行到当前函数的哪条指令
+      volatile l_signalT trap;                                              // 当前调用是否需要被捕捉 可视作布尔变量 用于表示hook函数钩子功能是否开启 开启后会根据lua_State的hookmask字段决定要钩起监听的逻辑
+                                                                            // 钩子相关我们在文末再进行讲解 当trap为1时即代表该次调用hook功能开启了 告诉执行器需要在当前CallInfo指令执行的过程中 跳转并执行特定的自定义钩子函数
+      int nextraargs;  /* # of extra arguments in vararg functions */       // 表示额外传入的函数参数的个数
     } l;
     struct {  /* only for C functions */
       lua_KFunction k;  /* continuation in case of yields */
@@ -199,8 +202,8 @@ struct CallInfo {
       unsigned short ntransfer;  /* number of values transferred */
     } transferinfo;
   } u2;
-  short nresults;  /* expected number of results from this function */
-  unsigned short callstatus;
+  short nresults;  /* expected number of results from this function */      // 调用该函数期待的返回值个数
+  unsigned short callstatus;                                                // 当前函数的调用状态 // CIST
 };
 
 
@@ -316,6 +319,23 @@ typedef struct global_State {                                                   
   void *ud_warn;         /* auxiliary data to 'warnf' */
 } global_State;
 
+/*
+lua运行时栈
+
++-----+ stack_last
+|     |
+|     |
++-----+ top
+|     |
+|     |
+|-----|
+| arg2|
+|-----|
+| arg1|
+|-----|
+| fun |
++-----+ stack
+*/
 
 /*
 ** 'per thread' state
@@ -325,10 +345,10 @@ struct lua_State {                                                              
   lu_byte status;
   lu_byte allowhook;
   unsigned short nci;  /* number of items in 'ci' list */
-  StkIdRel top;  /* first free slot in the stack */
+  StkIdRel top;  /* first free slot in the stack */                                     // lua运行时堆栈
   global_State *l_G;                                                                    // 指向一个全局状态结构体 所以Lua中Thread可以共享到这些全局数据
   CallInfo *ci;  /* call info for current function */                                   // 运行函数信息相关
-  StkIdRel stack_last;  /* end of stack (last element + 1) */
+  StkIdRel stack_last;  /* end of stack (last element + 1) */                           // lua运行时堆栈
   StkIdRel stack;  /* stack base */                                                     // 记录堆栈的头和尾部指针
   UpVal *openupval;  /* list of open upvalues in this stack */                          // 所有open态的UpVal都链接在这个链表当中 前插法
   StkIdRel tbclist;  /* list of to-be-closed variables */                               // 函数运行完成后准备关闭的函数

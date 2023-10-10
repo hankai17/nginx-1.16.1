@@ -146,11 +146,11 @@ typedef struct TValue {                                                 // 1 TVa
 ** that field.
 */
 typedef union StackValue {
-  TValue val;
+  TValue val;                       // 表示这个栈元素实际存储的数据 可以是任何类型
   struct {
     TValuefields;
     unsigned short delta;
-  } tbclist;
+  } tbclist;                        // 与数据清除相关
 } StackValue;
 
 
@@ -568,12 +568,12 @@ typedef struct Proto {                                                          
   int linedefined;  /* debug information  */                                        // 函数的开始与结束的行
   int lastlinedefined;  /* debug information  */
   TValue *k;  /* constants used by the function */                                  // 常量的数量与常量所存储在的数组
-  Instruction *code;  /* opcodes */                                                 // 该函数所调用的所有指令码数量和指令码数组 函数执行的时候就是按顺序跑这些的指令码
+  Instruction *code;  /* opcodes */                                                 // 该函数所调用的所有指令码数量和指令码数组 函数执行的时候就是按顺序跑这些的指令码                                      // "代码段"
   struct Proto **p;  /* functions defined inside the function */                    // 函数内部又定义了的其它函数 所以说Lua的函数支持嵌套定义 // 比c闭包强大之处
-  Upvaldesc *upvalues;  /* upvalue information */                                   // 指向全局lua_State结构体中的openupvalue的某个level层的UpVal // 全局upval为前插法 所以自然而然的其之后的upval才可见
+  Upvaldesc *upvalues;  /* upvalue information */                                   // 指向全局lua_State结构体中的openupvalue的某个level层的UpVal // 全局upval为前插法 所以自然而然的其之后的upval才可见    // "外部数据段"
   ls_byte *lineinfo;  /* information about source lines (debug information) */
   AbsLineInfo *abslineinfo;  /* idem */
-  LocVar *locvars;  /* information about local variables (debug information) */     // 局部变量的描述
+  LocVar *locvars;  /* information about local variables (debug information) */     // 局部变量的描述                                                                                                       // "数据段"
   TString  *source;  /* used for debug information */                               // 该函数的源代码的字符串表示
   GCObject *gclist;
 } Proto;
@@ -630,7 +630,8 @@ typedef struct Proto {                                                          
 /*
 ** Upvalues for Lua closures
 */
-typedef struct UpVal {
+typedef struct UpVal {                                                          // 函数的外部数据 即在函数的更外层进行定义 脱离了该函数后仍然有效的数据
+                                                                                // 与之对应的是 函数内部数据 即Proto中的局部变量LocVar* locvars 传参也是局部变量
   CommonHeader;
   union {
     TValue *p;  /* points to stack or to its own value */
@@ -642,6 +643,7 @@ typedef struct UpVal {
       struct UpVal **previous;
     } open;                                                                     // open态时生效
     TValue value;  /* the value (when closed) */                                // close态时生效 // 函数在返回后会切换到close状态 // luaF_closeupval
+                                                                                                 // 或者当外层函数被清除的时候
   } u;
 } UpVal;
 
