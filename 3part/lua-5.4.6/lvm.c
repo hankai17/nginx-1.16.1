@@ -1135,8 +1135,8 @@ void luaV_finishOp (lua_State *L) {
     trap = luaG_traceexec(L, pc);  /* handle hooks */ \
     updatebase(ci);  /* correct stack */ \
   } \
-  i = *(pc++); \                                                        /*取指 PC++*/
-}
+  i = *(pc++); \
+}                                                                       /*取指 PC++*/
 
 #define vmdispatch(o)	switch(o)
 #define vmcase(l)	case l:
