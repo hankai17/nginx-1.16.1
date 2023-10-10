@@ -199,7 +199,7 @@ typedef enum {
   name		args	description
 ------------------------------------------------------------------------*/
 OP_MOVE,/*	A B	R[A] := R[B]					*/
-OP_LOADI,/*	A sBx	R[A] := sBx					*/
+OP_LOADI,/*	A sBx	R[A] := sBx					*/                          //  读取一个整数并存入寄存器 A即下标为A的寄存器
 OP_LOADF,/*	A sBx	R[A] := (lua_Number)sBx				*/
 OP_LOADK,/*	A Bx	R[A] := K[Bx]					*/
 OP_LOADKX,/*	A	R[A] := K[extra arg]				*/

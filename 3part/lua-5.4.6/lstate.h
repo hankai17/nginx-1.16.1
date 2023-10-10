@@ -182,7 +182,7 @@ struct CallInfo {
   struct CallInfo *previous, *next;  /* dynamic call link */                // 
   union {
     struct {  /* only for Lua functions */                                  // 用于存储Lua闭包运行时的信息
-      const Instruction *savedpc;                                           // 记录当前虚拟机执行器执行到当前函数的哪条指令
+      const Instruction *savedpc;                                           // 记录当前虚拟机执行器执行到当前函数的哪条指令 // PC指针 指向 Proto->code 即哪条指令处
       volatile l_signalT trap;                                              // 当前调用是否需要被捕捉 可视作布尔变量 用于表示hook函数钩子功能是否开启 开启后会根据lua_State的hookmask字段决定要钩起监听的逻辑
                                                                             // 钩子相关我们在文末再进行讲解 当trap为1时即代表该次调用hook功能开启了 告诉执行器需要在当前CallInfo指令执行的过程中 跳转并执行特定的自定义钩子函数
       int nextraargs;  /* # of extra arguments in vararg functions */       // 表示额外传入的函数参数的个数

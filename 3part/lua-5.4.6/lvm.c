@@ -1135,7 +1135,7 @@ void luaV_finishOp (lua_State *L) {
     trap = luaG_traceexec(L, pc);  /* handle hooks */ \
     updatebase(ci);  /* correct stack */ \
   } \
-  i = *(pc++); \
+  i = *(pc++); \                                                        /*取指 PC++*/
 }
 
 #define vmdispatch(o)	switch(o)
@@ -1144,6 +1144,7 @@ void luaV_finishOp (lua_State *L) {
 
 
 void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通过列表方式初始化Table数组部分内容 
+                                                                        // Lua虚拟机指令执行流程
   LClosure *cl;
   TValue *k;
   StkId base;
@@ -1157,7 +1158,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通�
  returning:  /* trap already set */
   cl = clLvalue(s2v(ci->func.p));
   k = cl->p->k;
-  pc = ci->u.l.savedpc;
+  pc = ci->u.l.savedpc;                                                 // 初始化PC指针
   if (l_unlikely(trap)) {
     if (pc == cl->p->code) {  /* first instruction (not resuming)? */
       if (cl->p->is_vararg)
@@ -1171,7 +1172,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通�
   /* main loop of interpreter */
   for (;;) {
     Instruction i;  /* instruction being executed */
-    vmfetch();
+    vmfetch();                                                          // 循环不断拿出PC指针指向的opcode 从而进行执行
     #if 0
       /* low-level line tracing for debugging Lua */
       printf("line: %d\n", luaG_getfuncline(cl->p, pcRel(pc, cl->p)));
@@ -1180,7 +1181,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通�
     lua_assert(base <= L->top.p && L->top.p <= L->stack_last.p);
     /* invalidate top for instructions not expecting it */
     lua_assert(isIT(i) || (cast_void(L->top.p = base), 1));
-    vmdispatch (GET_OPCODE(i)) {
+    vmdispatch (GET_OPCODE(i)) {                                        // OpCode的执行流程是根据OpCode的类型 然后结合参数执行特定的逻辑
       vmcase(OP_MOVE) {
         StkId ra = RA(i);
         setobjs2s(L, ra, RB(i));
