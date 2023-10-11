@@ -114,7 +114,7 @@ typedef struct TValue {                                                 // 1 TVa
 #define settt_(o,t)	((o)->tt_=(t))
 
 
-/* main macro to copy values (from 'obj2' to 'obj1') */
+/* main macro to copy values (from 'obj2' to 'obj1') */                 // eg: MOVE 3 0 虚拟寄存器赋值操作
 #define setobj(L,obj1,obj2) \
 	{ TValue *io1=(obj1); const TValue *io2=(obj2); \
           io1->value_ = io2->value_; settt_(io1, io2->tt_); \
@@ -145,7 +145,7 @@ typedef struct TValue {                                                 // 1 TVa
 ** their real delta is always the maximum value that fits in
 ** that field.
 */
-typedef union StackValue {
+typedef union StackValue {          // 虚拟寄存器中的值
   TValue val;                       // 表示这个栈元素实际存储的数据 可以是任何类型
   struct {
     TValuefields;
