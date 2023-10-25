@@ -635,7 +635,7 @@ static void copy2buff (StkId top, int n, char *buff) {
 ** Main operation for concatenation: concat 'total' values in the stack,
 ** from 'L->top.p - total' up to 'L->top.p - 1'.
 */
-void luaV_concat (lua_State *L, int total) {
+void luaV_concat (lua_State *L, int total) {									// .. 拼接函数
   if (total == 1)
     return;  /* "all" values already concatenated */
   do {

@@ -153,7 +153,7 @@ static void addfield (lua_State *L, luaL_Buffer *b, lua_Integer i) {
 }
 
 
-static int tconcat (lua_State *L) {
+static int tconcat (lua_State *L) {                     // table.concat
   luaL_Buffer b;
   lua_Integer last = aux_getn(L, 1, TAB_R);
   size_t lsep;
