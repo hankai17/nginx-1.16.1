@@ -19,7 +19,7 @@ static u_char *ngx_http_lua_log_init_worker_error(ngx_log_t *log,
 
 
 ngx_int_t
-ngx_http_lua_init_worker(ngx_cycle_t *cycle)
+ngx_http_lua_init_worker(ngx_cycle_t *cycle)	// 于各子进程中调用 main->ngx_single_process_cycle->ngx_event_process_init
 {
     char                        *rv;
     void                        *cur, *prev;
@@ -273,7 +273,7 @@ ngx_http_lua_init_worker(ngx_cycle_t *cycle)
 
     ngx_http_lua_set_req(lmcf->lua, r);
 
-    (void) lmcf->init_worker_handler(cycle->log, lmcf, lmcf->lua);
+    (void) lmcf->init_worker_handler(cycle->log, lmcf, lmcf->lua);	// 加载lua源码
 
     ngx_destroy_pool(c->pool);
     return NGX_OK;
@@ -293,7 +293,7 @@ failed:
 
 
 ngx_int_t
-ngx_http_lua_init_worker_by_inline(ngx_log_t *log,
+ngx_http_lua_init_worker_by_inline(ngx_log_t *log,			// 加载lua源码
     ngx_http_lua_main_conf_t *lmcf, lua_State *L)
 {
     int         status;

@@ -37,7 +37,7 @@ static ngx_connection_t  dumb;
 
 
 ngx_cycle_t *
-ngx_init_cycle(ngx_cycle_t *old_cycle)              // 起各worker之前 // reload时
+ngx_init_cycle(ngx_cycle_t *old_cycle)              // 起各worker之前 // reload时 // worker子进程是在main函数中最后起的
 {
     void                *rv;
     char               **senv;
@@ -198,7 +198,7 @@ ngx_init_cycle(ngx_cycle_t *old_cycle)              // 起各worker之前 // rel
     }
 
 
-    if (gethostname(hostname, NGX_MAXHOSTNAMELEN) == -1) {
+    if (gethostname(hostname, NGX_MAXHOSTNAMELEN) == -1) {	// uname -n // qd01-test-sec013016-waf3-node01.qd01.ksyun.com
         ngx_log_error(NGX_LOG_EMERG, log, ngx_errno, "gethostname() failed");
         ngx_destroy_pool(pool);
         return NULL;

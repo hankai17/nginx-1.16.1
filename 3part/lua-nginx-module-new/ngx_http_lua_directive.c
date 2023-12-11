@@ -1084,7 +1084,7 @@ ngx_http_lua_body_filter_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
 
 
 char *
-ngx_http_lua_init_by_lua_block(ngx_conf_t *cf, ngx_command_t *cmd,
+ngx_http_lua_init_by_lua_block(ngx_conf_t *cf, ngx_command_t *cmd, // init_by_lua_block 命令解析
     void *conf)
 {
     char        *rv;
@@ -1151,7 +1151,7 @@ ngx_http_lua_init_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
 
 
 char *
-ngx_http_lua_init_worker_by_lua_block(ngx_conf_t *cf, ngx_command_t *cmd,
+ngx_http_lua_init_worker_by_lua_block(ngx_conf_t *cf, ngx_command_t *cmd,   // init_worker_by_lua_block 命令的解析函数
     void *conf)
 {
     char        *rv;
@@ -1190,9 +1190,9 @@ ngx_http_lua_init_worker_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
 
     value = cf->args->elts;
 
-    lmcf->init_worker_handler = (ngx_http_lua_main_conf_handler_pt) cmd->post;
+    lmcf->init_worker_handler = (ngx_http_lua_main_conf_handler_pt) cmd->post;	// ngx_http_lua_init_worker中调用(即worker进程中调用)
 
-    if (cmd->post == ngx_http_lua_init_worker_by_file) {
+    if (cmd->post == ngx_http_lua_init_worker_by_file) {    // ngx_http_lua_init_worker_by_inline 或者 ngx_http_lua_init_worker_by_file
         name = ngx_http_lua_rebase_path(cf->pool, value[1].data,
                                         value[1].len);
         if (name == NULL) {
@@ -1402,7 +1402,17 @@ ngx_http_lua_conf_lua_block_parse(ngx_conf_t *cf, ngx_command_t *cmd)
 
                 cf->args = saved;
 
+                /*
+                eg:
+                cf->handler = ngx_http_lua_init_worker_by_lua;
+                cf->handler_conf = conf;
+
+                eg:
+                cf->handler = ngx_http_lua_init_by_lua;
+                cf->handler_conf = conf;
+                */
                 rv = (*cf->handler)(cf, cmd, cf->handler_conf);
+
                 if (rv == NGX_CONF_OK) {
                     goto done;
                 }

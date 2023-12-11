@@ -160,7 +160,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, // 只进一次 // 带�
     clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
     size = clcf->client_body_buffer_size;
-    size += size >> 2;
+    size += size >> 2;						// 1M + 1M/4 = 1.25M
 
     /* TODO: honor r->request_body_in_single_buf */
 
@@ -1128,7 +1128,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    if (r->request_body_no_buffering) {
+    if (r->request_body_no_buffering) {	// 如果有自己的插件 request_body_no_buffering是没有机会被赋值为1的
         return NGX_OK;
     }
 

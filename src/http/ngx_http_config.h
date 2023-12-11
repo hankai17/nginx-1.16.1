@@ -33,7 +33,7 @@ typedef struct {
 
     void       *(*create_loc_conf)(ngx_conf_t *cf);
     char       *(*merge_loc_conf)(ngx_conf_t *cf, void *prev, void *conf);
-} ngx_http_module_t;
+} ngx_http_module_t;	// ngx_http_module_s
 
 
 #define NGX_HTTP_MODULE           0x50545448   /* "HTTP" */

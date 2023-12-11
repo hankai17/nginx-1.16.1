@@ -196,7 +196,7 @@ static ngx_command_t ngx_http_lua_cmds[] = {
       ngx_http_lua_init_worker_by_lua,
       NGX_HTTP_MAIN_CONF_OFFSET,
       0,
-      (void *) ngx_http_lua_init_worker_by_inline },
+      (void *) ngx_http_lua_init_worker_by_inline },	// cmd->post
 
     { ngx_string("init_worker_by_lua_file"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
@@ -606,7 +606,7 @@ ngx_http_module_t ngx_http_lua_module_ctx = {
 };
 
 
-ngx_module_t ngx_http_lua_module = {
+ngx_module_t ngx_http_lua_module = {	// 参考 ngx_event_core_module
     NGX_MODULE_V1,
     &ngx_http_lua_module_ctx,   /*  module context */
     ngx_http_lua_cmds,          /*  module directives */
