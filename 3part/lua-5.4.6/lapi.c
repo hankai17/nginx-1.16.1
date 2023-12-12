@@ -1042,7 +1042,7 @@ static void f_call (lua_State *L, void *ud) {
 
 
 
-LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
+LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,		// pcall和xpcall的实现 // 保护模式调用
                         lua_KContext ctx, lua_KFunction k) {
   struct CallS c;
   int status;
@@ -1053,15 +1053,15 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,
   api_checknelems(L, nargs+1);
   api_check(L, L->status == LUA_OK, "cannot do calls on non-normal thread");
   checkresults(L, nargs, nresults);
-  if (errfunc == 0)
-    func = 0;
+  if (errfunc == 0)																// errfunc为xpcall传入的错误处理函数的栈位置
+    func = 0;																	// 没有错误处理函数
   else {
-    StkId o = index2stack(L, errfunc);
+    StkId o = index2stack(L, errfunc);											// errfunc的在线程栈中的绝对偏移
     api_check(L, ttisfunction(s2v(o)), "error handler must be a function");
     func = savestack(L, o);
   }
-  c.func = L->top.p - (nargs+1);  /* function to be called */
-  if (k == NULL || !yieldable(L)) {  /* no continuation or no yieldable? */
+  c.func = L->top.p - (nargs+1);  /* function to be called */					// 要被调用的函数
+  if (k == NULL || !yieldable(L)) {  /* no continuation or no yieldable? */		// 如果没有k函数 或当前不可yield 则正常调用pcall(主线程不可yield)
     c.nresults = nresults;  /* do a 'conventional' protected call */
     status = luaD_pcall(L, f_call, &c, savestack(L, c.func), func);
   }

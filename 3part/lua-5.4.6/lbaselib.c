@@ -469,7 +469,7 @@ static int finishpcall (lua_State *L, int status, lua_KContext extra) {
 }
 
 
-static int luaB_pcall (lua_State *L) {
+static int luaB_pcall (lua_State *L) {											// pcall和xpcall的实现
   int status;
   luaL_checkany(L, 1);
   lua_pushboolean(L, 1);  /* first result if no errors */
@@ -491,7 +491,7 @@ static int luaB_xpcall (lua_State *L) {
   lua_pushboolean(L, 1);  /* first result */
   lua_pushvalue(L, 1);  /* function */
   lua_rotate(L, 3, 2);  /* move them below function's arguments */
-  status = lua_pcallk(L, n - 2, LUA_MULTRET, 2, 2, finishpcall);
+  status = lua_pcallk(L, n - 2, LUA_MULTRET, 2, 2, finishpcall);				// pcall和xpcall的实现
   return finishpcall(L, status, 2);
 }
 
@@ -514,7 +514,7 @@ static const luaL_Reg base_funcs[] = {
   {"load", luaB_load},
   {"next", luaB_next},
   {"pairs", luaB_pairs},
-  {"pcall", luaB_pcall},
+  {"pcall", luaB_pcall},                    // Lua的pcall和xpcall依赖于上面的底层保护机制 其主要处理是将栈恢复到调用pcall|xpcall的那一时刻的样子
   {"print", luaB_print},
   {"warn", luaB_warn},
   {"rawequal", luaB_rawequal},

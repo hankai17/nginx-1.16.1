@@ -54,7 +54,7 @@
 
 #if defined(__cplusplus) && !defined(LUA_USE_LONGJMP)	/* { */
 
-/* C++ exceptions */
+/* C++ exceptions */		// c++中的
 #define LUAI_THROW(L,c)		throw(c)
 #define LUAI_TRY(L,c,a) \
 	try { a } catch(...) { if ((c)->status == 0) (c)->status = -1; }
@@ -62,7 +62,7 @@
 
 #elif defined(LUA_USE_POSIX)				/* }{ */
 
-/* in POSIX, try _longjmp/_setjmp (more efficient) */
+/* in POSIX, try _longjmp/_setjmp (more efficient) */	// c中的
 #define LUAI_THROW(L,c)		_longjmp((c)->b, 1)
 #define LUAI_TRY(L,c,a)		if (_setjmp((c)->b) == 0) { a }
 #define luai_jmpbuf		jmp_buf
@@ -112,8 +112,8 @@ void luaD_seterrorobj (lua_State *L, int errcode, StkId oldtop) {
 }
 
 
-l_noret luaD_throw (lua_State *L, int errcode) {
-  if (L->errorJmp) {  /* thread has an error handler? */
+l_noret luaD_throw (lua_State *L, int errcode) {					// 抛出错误
+  if (L->errorJmp) {  /* thread has an error handler? */			// 如果当前线程有错误保护 直接longjmp过去给它
     L->errorJmp->status = errcode;  /* set status */
     LUAI_THROW(L, L->errorJmp);  /* jump to it */
   }
@@ -136,17 +136,17 @@ l_noret luaD_throw (lua_State *L, int errcode) {
 
 
 int luaD_rawrunprotected (lua_State *L, Pfunc f, void *ud) {
-  l_uint32 oldnCcalls = L->nCcalls;
+  l_uint32 oldnCcalls = L->nCcalls;									// 把当前的jmpbuf保存在L的errorJmp 形成一个链表
   struct lua_longjmp lj;
   lj.status = LUA_OK;
   lj.previous = L->errorJmp;  /* chain new error handler */
   L->errorJmp = &lj;
   LUAI_TRY(L, &lj,
-    (*f)(L, ud);
+    (*f)(L, ud);													// 调用f函数
   );
   L->errorJmp = lj.previous;  /* restore old error handler */
   L->nCcalls = oldnCcalls;
-  return lj.status;
+  return lj.status;													// 如果有错 这个status变成luaD_throw传入的错误码
 }
 
 /* }====================================================== */
@@ -969,19 +969,20 @@ int luaD_closeprotected (lua_State *L, ptrdiff_t level, int status) {
 ** its stack level in case of errors.
 */
 int luaD_pcall (lua_State *L, Pfunc func, void *u,
-                ptrdiff_t old_top, ptrdiff_t ef) {
+                ptrdiff_t old_top, ptrdiff_t ef) {  // 保护模式call func为要调用的回调函数 u为用户数据 
+                                                    // old_top旧的栈顶即pcall之前的栈顶  ef为错误处理函数的绝对偏移
   int status;
   CallInfo *old_ci = L->ci;
   lu_byte old_allowhooks = L->allowhook;
   ptrdiff_t old_errfunc = L->errfunc;
   L->errfunc = ef;
-  status = luaD_rawrunprotected(L, func, u);
-  if (l_unlikely(status != LUA_OK)) {  /* an error occurred? */
-    L->ci = old_ci;
+  status = luaD_rawrunprotected(L, func, u);        // 保护模式下调用回调函数
+  if (l_unlikely(status != LUA_OK)) {               /* an error occurred? */ // 如果发生错误
+    L->ci = old_ci;                                 // 取出旧的栈顶 即调用pcall时的那个栈
     L->allowhook = old_allowhooks;
-    status = luaD_closeprotected(L, old_top, status);
-    luaD_seterrorobj(L, status, restorestack(L, old_top));
-    luaD_shrinkstack(L);   /* restore stack size in case of overflow */
+    status = luaD_closeprotected(L, old_top, status);   // 把在恢复的栈上的upvalues关闭
+    luaD_seterrorobj(L, status, restorestack(L, old_top));  // 把栈顶的错误对象设给旧栈顶 并重设栈顶
+    luaD_shrinkstack(L);   /* restore stack size in case of overflow */ // 恢复旧的调用帧 // 收缩栈大小
   }
   L->errfunc = old_errfunc;
   return status;

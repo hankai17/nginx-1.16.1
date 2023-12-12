@@ -1044,7 +1044,7 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
                     return ngx_http_lua_handle_rewrite_jump(L, r, ctx);
                 }
 
-                if (ctx->exited) {
+                if (ctx->exited) {												// openresty lua代码里调用了lua_yield eg: ngx_http_lua_control.c中那几个exec exit函数
                     return ngx_http_lua_handle_exit(L, r, ctx);
                 }
 

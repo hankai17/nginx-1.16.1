@@ -358,7 +358,7 @@ struct lua_State {                                                              
   CallInfo base_ci;  /* CallInfo for first level (C calling Lua) */
   volatile lua_Hook hook;                                                               // 函数勾子
   ptrdiff_t errfunc;  /* current error handling function (stack index) */               // 若有设置此错误回调函数 则运行发生错误后会调用这个函数 通常用于输出异常信息
-  l_uint32 nCcalls;  /* number of nested (non-yieldable | C)  calls */
+  l_uint32 nCcalls;  /* number of nested (non-yieldable | C)  calls */					// 复合字段
   int oldpc;  /* last pc traced */
   int basehookcount;
   int hookcount;
