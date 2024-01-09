@@ -1460,3 +1460,43 @@ ngx_shutdown_timer_handler(ngx_event_t *ev)
         c[i].read->handler(c[i].read);
     }
 }
+
+/*
+#include <ngx_config.h>                                                                                               
+#include <ngx_core.h>                                                                                                 
+#include <ngx_http.h>                                                                                                 
+#include "http_ipvisit.h"                                                                                             
+                                                                                                                      
+                                                                                                                      
+typedef struct {                                                                                                      
+    u_char                       color;                                                                               
+    u_char                       dummy;                                                                               
+    u_short                      len;                                                                                 
+    ngx_queue_t                  queue;                                                                               
+    time_t                       timestamp;                                                                           
+    int                          failed_count;                                                                        
+    int                          guess_url_count;                                                                     
+    struct http_ipvisit_attack   attack;                                                                              
+    time_t                       start_time;                                                                          
+    time_t                       end_time;                                                                            
+    int                          action;                                                                              
+    u_char                       data[1];                                                                             
+} ngx_http_ipvisit_node_t;              // 红黑树操作使用的是原生node // 类的node地址被存储在原生node的color里        
+                                                                                                                      
+typedef struct {                                                                                                      
+    ngx_rbtree_t                  rbtree;                                                                             
+    ngx_rbtree_node_t             sentinel;                                                                           
+    ngx_queue_t                   queue;                                                                              
+    unsigned long long int        login_cnt;                                                                          
+                                                                                                                      
+} ngx_http_ipvisit_shctx_t;             // 队列/根地址头抽象                                                          
+                                                                                                                      
+                                                                                                                      
+struct ngx_http_ipvisit_ctx_s {                                                                                       
+    ngx_slab_pool_t            *shpool; // 共享内存池 可以多进程加锁共享                                              
+    ngx_http_ipvisit_shctx_t   *sh;     // 分配 初始化队列头/根地址                                                   
+    ngx_http_complex_value_t    key;                                                                                  
+};                                                                                                                    
+                                                                                                                      
+typedef struct ngx_http_ipvisit_ctx_s ngx_http_ipvisit_ctx_t;                         
+*/
