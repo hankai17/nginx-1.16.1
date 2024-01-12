@@ -2214,7 +2214,8 @@ ngx_http_set_virtual_server(ngx_http_request_t *r, ngx_str_t *host)
 
 #endif
 
-    rc = ngx_http_find_virtual_server(r->connection,
+    rc = ngx_http_find_virtual_server(r->connection,        // nginx server块查找逻辑是 相同端口找监听地址匹配的 相同监听地址匹配的找 host匹配的
+															// 若nginx.conf中 存在多个监听同一ip:port 那么以第一个server块为准 即如果没有匹配上其它host 那么就走第一个server块的逻辑 
                                       hc->addr_conf->virtual_names,
                                       host, r, &cscf);
 

@@ -42,12 +42,19 @@ set print pretty
 #b ngx_http_process_host
 #b ngx_http_update_location_config
 #b ngx_http_proxy_handler
-b ngx_http_upstream_save_round_robin_peer_session
-b ngx_http_upstream_set_round_robin_peer_session
-b ngx_ssl_remove_cached_session
+#b ngx_http_upstream_save_round_robin_peer_session
+#b ngx_http_upstream_set_round_robin_peer_session
+#b ngx_ssl_remove_cached_session
 #b ngx_ssl_session_ticket_keys
 #b ngx_ssl_free_buffer
 #b ngx_ssl_shutdown
-b ngx_ssl_new_client_session
-b ngx_http_upstream_session_sticky_save_peer_session
-b ngx_http_upstream_session_sticky_set_peer_session
+#b ngx_ssl_new_client_session
+#b ngx_http_upstream_session_sticky_save_peer_session
+#b ngx_http_upstream_session_sticky_set_peer_session
+
+#b ngx_http_init_connection
+b ngx_http_find_virtual_server
+#b ngx_http_add_addresses 
+#b ngx_http_optimize_servers
+#b ngx_http_server_names
+b ngx_http_init_listening
