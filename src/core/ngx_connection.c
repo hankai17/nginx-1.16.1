@@ -506,7 +506,7 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
                 return NGX_ERROR;
             }
 
-            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR,
+            if (setsockopt(s, SOL_SOCKET, SO_REUSEADDR,					// reuseaddr 只针对tw态 还有一个any的精准性问题(看下面stackoverflow链接)
                            (const void *) &reuseaddr, sizeof(int))
                 == -1)
             {
@@ -525,7 +525,9 @@ ngx_open_listening_sockets(ngx_cycle_t *cycle)
 
 #if (NGX_HAVE_REUSEPORT)
 
-            if (ls[i].reuseport && !ngx_test_config) {
+			// https://zhuanlan.zhihu.com/p/492644204
+			// https://stackoverflow.com/questions/14388706/how-do-so-reuseaddr-and-so-reuseport-differ 这片文章非常好
+            if (ls[i].reuseport && !ngx_test_config) {	// 支持多个进程或者线程绑定到同一端口 开启后才能多个进程都监听同一ip:port // nginx默认是关闭的
                 int  reuseport;
 
                 reuseport = 1;
