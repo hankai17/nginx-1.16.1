@@ -679,7 +679,7 @@ ngx_http_lua_init(ngx_conf_t *cf)
             return NGX_ERROR;
         }
 
-        *h = ngx_http_lua_access_handler;
+        *h = ngx_http_lua_access_handler;                                       // 这个插件函数里会调用"access_by_lua_block" 指令中的lua源码
     }
 
     dd("requires log: %d", (int) lmcf->requires_log);

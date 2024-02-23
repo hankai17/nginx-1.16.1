@@ -160,7 +160,7 @@ ngx_http_lua_access_handler(ngx_http_request_t *r)
     }
 
     dd("calling access handler");
-    return llcf->access_handler(r);
+    return llcf->access_handler(r);     // 运行lua源码 // ngx_http_lua_access_by_lua 中设置的 llcf->access_handler = (ngx_http_handler_pt) cmd->post; // cmd->post是 ngx_http_lua_module.c中的结构体里设置的 eg: "access_by_lua[_block]"指令设置的post是 ngx_http_lua_access_handler_inline 
 }
 
 
