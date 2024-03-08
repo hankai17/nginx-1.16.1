@@ -1,8 +1,10 @@
-v3可以安装但是有bug ./configure --with-yajl=/usr/local CFLAGS= -g -O0 CXXFLAGS= -g -O0
-v2环境不好搭建 ./configure --with-yajl=/usr/local CFLAGS=' -g -O0' CXXFLAGS=' -g -O0' --enable-standalone-module -disable-mlogc
+方案一:
+    v3可以安装但是有bug ./configure --with-yajl=/usr/local CFLAGS= -g -O0 CXXFLAGS= -g -O0
+    v2环境不好搭建 ./configure --with-yajl=/usr/local CFLAGS=' -g -O0' CXXFLAGS=' -g -O0' --enable-standalone-module -disable-mlogc
 
-
-
+方案二:
+    ./configure --enable-standalone-module --disable-mlogc
+    直接用v2 且用v2提供的插件 会编译成静态库到nginx中
 
 
 

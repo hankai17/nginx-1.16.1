@@ -7,7 +7,7 @@
 --with-http_ssl_module \
 --with-threads \
 --add-module=./private_conf/ngx_http_security_stats \
---add-module=./my_conf/ModSecurity-nginx
+--add-module=./modsecurity-2.9.6/nginx/modsecurity
 
 
 
