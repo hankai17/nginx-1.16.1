@@ -1,0 +1,28 @@
+v3可以安装但是有bug ./configure --with-yajl=/usr/local CFLAGS= -g -O0 CXXFLAGS= -g -O0
+v2环境不好搭建 ./configure --with-yajl=/usr/local CFLAGS=' -g -O0' CXXFLAGS=' -g -O0' --enable-standalone-module -disable-mlogc
+
+
+
+
+
+
+
+
+
+
+kcf->free [][][]...[]   // 1024
+kcf->cache              // 存放长/空闲链接
+
+链接释放时 从free拿一个空结构 初始化之放到cache里
+获取链接时 从cache里拿一条链接 放到free里
+
+1. 均占用长连接 进行数据读写: free满 cache空
+2. 新连接到来 则起新链接 则释放时
+
+
+
+1024是最大的inactive长连接数 最大空闲链接数
+当我要产生第1025个长链接时 free是空的  就会强制关闭最老的长链接 然后放进去 确保inactive始终为1024
+
+
+

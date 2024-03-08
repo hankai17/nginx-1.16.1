@@ -5,6 +5,9 @@ set print pretty
 #b ngx_http_modsecurity_pre_access.c:119
 #b ngx_http_modsecurity_pre_access_handler
 #b ngx_http_modsecurity_request_read
+#b ngx_http_modsecurity_body_filter
+b msc_process_response_body
+#b RuleWithOperator::evaluate
 #b ngx_http_modsecurity_process_intervention
 #b modsecurity::Transaction::processRequestBody
 #b transaction.cc:979
