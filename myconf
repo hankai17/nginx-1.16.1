@@ -10,7 +10,6 @@
 --with-http_sub_module \
 --add-module=./my_conf/http_upstream_persistent \
 --add-module=./my_conf/headers-more-nginx-module-master \
---add-module=./my_conf/ngx_http_ssl_client_hello_module \
 --add-module=./private_conf/ngx_http_security_stats \
 --add-module=./my_conf/ngx_http_upstream_session_sticky_module
 
