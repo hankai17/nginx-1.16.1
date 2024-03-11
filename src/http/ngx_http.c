@@ -274,6 +274,7 @@ ngx_http_block(ngx_conf_t *cf, ngx_command_t *cmd, void *conf)
 
 
     /* create location trees */
+    // 创建location 二叉树
 
     for (s = 0; s < cmcf->servers.nelts; s++) {
 

@@ -1603,7 +1603,7 @@ ngx_ssl_set_session(ngx_connection_t *c, ngx_ssl_session_t *session)            
 
 
 ngx_int_t
-ngx_ssl_handshake(ngx_connection_t *c)
+ngx_ssl_handshake(ngx_connection_t *c)      // 第一次收到client hello之后 完成初始化之后 调用之 里面调用openssl的ssl_do_handshake
 {
     int        n, sslerr;
     ngx_err_t  err;

@@ -446,11 +446,11 @@ ngx_event_init_conf(ngx_cycle_t *cycle, void *conf)
     ls = cycle->listening.elts;
     for (i = 0; i < cycle->listening.nelts; i++) {
 
-        if (!ls[i].reuseport || ls[i].worker != 0) {
+        if (!ls[i].reuseport || ls[i].worker != 0) { // 如果该监听器没打开reuseport或者该监听器的worker成员变量已经赋值了
             continue;
         }
 
-        if (ngx_clone_listening(cycle, &ls[i]) != NGX_OK) {
+        if (ngx_clone_listening(cycle, &ls[i]) != NGX_OK) { // 如果开启了reuseport 那么为每个worker复制一份listen结构 // create a socket for each worker process
             return NGX_CONF_ERROR;
         }
 
@@ -782,11 +782,12 @@ ngx_event_process_init(ngx_cycle_t *cycle)  // 子进程中调用 子进程复�
     for (i = 0; i < cycle->listening.nelts; i++) { // 3个 ls结构
 
 #if (NGX_HAVE_REUSEPORT)
+        // 如果该监听器没开reuseport，或者worker标志位不等于当前的worker号，跳过
         if (ls[i].reuseport && ls[i].worker != ngx_worker) {
             continue;
         }
 #endif
-
+        //则对该listening对应的fd创建connection，指定read/write event，加入epoll监听。 
         c = ngx_get_connection(ls[i].fd, cycle->log);
 
         if (c == NULL) {
