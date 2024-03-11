@@ -1,5 +1,5 @@
 ./configure --prefix=/usr/local/nginx \
---with-ld-opt=-lrt \
+--with-ld-opt='-lrt -lcurl' \
 --with-pcre \
 --with-zlib=./my_conf/zlib-1.2.11 \
 --with-stream \
@@ -7,7 +7,7 @@
 --with-http_ssl_module \
 --with-threads \
 --add-module=./private_conf/ngx_http_security_stats \
---add-module=./modsecurity-2.9.6/nginx/modsecurity
+--add-module=./my_conf/ModSecurity-nginx
 
 
 

@@ -53,8 +53,11 @@ set print pretty
 #b ngx_http_upstream_session_sticky_set_peer_session
 
 #b ngx_http_init_connection
-b ngx_http_find_virtual_server
+#b ngx_http_find_virtual_server
 #b ngx_http_add_addresses 
 #b ngx_http_optimize_servers
 #b ngx_http_server_names
-b ngx_http_init_listening
+#b ngx_http_init_listening
+
+#
+b ngx_http_send_header
