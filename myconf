@@ -7,6 +7,7 @@
 --with-http_ssl_module \
 --with-http_v2_module \
 --with-threads \
+--with-debug \
 --with-http_sub_module \
 --add-module=./my_conf/http_upstream_persistent \
 --add-module=./my_conf/headers-more-nginx-module-master \

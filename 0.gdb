@@ -52,7 +52,7 @@ set print pretty
 #b ngx_event_pipe.c:275
 
 #shadown
-b ngx_http_sub_filter_module.c:357 
+#b ngx_http_sub_filter_module.c:357 
 #b ngx_http_sub_filter_module.c:478
 #b ngx_http_sub_filter_module.c:560
 #b ngx_http_upstream.c:3588
@@ -127,4 +127,24 @@ b ngx_http_sub_filter_module.c:357
 #b ngx_http_ssl_client_server_name
 #b ngx_http_ssl_client_hello_handler
 
-
+#mirror
+#b ngx_http_mirror_handler
+#b ngx_http_mirror_handler_internal
+#b ngx_http_request.c:2524
+#b ngx_http_run_posted_requests
+#b ngx_http_finalize_request
+#b ngx_http_read_client_request_body
+#b ngx_http_upstream_test_connect
+#b ngx_http_core_content_phase
+#b ngx_http_handler
+#b ngx_http_request.c:2419
+#b ngx_http_finalize_request
+#b ngx_epoll_module.c:911
+#b ngx_http_request.c:2543
+#b ngx_http_request.c:2581
+#b ngx_http_request.c:2587
+#b ngx_http_mirror_module.c:146
+b ngx_http_postpone_filter
+#b ngx_http_core_module.c:2339
+#b ngx_http_request.c:2574
+b ngx_http_request.c:2522

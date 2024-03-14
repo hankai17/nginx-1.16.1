@@ -2220,7 +2220,7 @@ ngx_http_gzip_quantity(u_char *p, u_char *last)
 ngx_int_t
 ngx_http_subrequest(ngx_http_request_t *r,
     ngx_str_t *uri, ngx_str_t *args, ngx_http_request_t **psr,
-    ngx_http_post_subrequest_t *ps, ngx_uint_t flags)
+    ngx_http_post_subrequest_t *ps, ngx_uint_t flags)               // 插件中发起subreq操作 // 根据原始的r 构造新的sr 最后调用 ngx_http_post_request(sr, NULL);
 {
     ngx_time_t                    *tp;
     ngx_connection_t              *c;
@@ -2322,7 +2322,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
 
     ngx_http_set_exten(sr);
 
-    sr->main = r->main;
+    sr->main = r->main; // main的作用是为了 标识子请求 防止重复进入插件从而死循环
     sr->parent = r;
     sr->post_subrequest = ps;
     sr->read_event_handler = ngx_http_request_empty_handler;

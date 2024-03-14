@@ -27,7 +27,7 @@ static ngx_int_t ngx_http_request_body_chunked_filter(ngx_http_request_t *r,
 
 
 ngx_int_t
-ngx_http_read_client_request_body(ngx_http_request_t *r, // 只进一次 // 带有do(ngx_http_do_read_client_request_body)的进多次
+ngx_http_read_client_request_body(ngx_http_request_t *r,        // 只进一次 // 带有do(ngx_http_do_read_client_request_body)的进多次
     ngx_http_client_body_handler_pt post_handler)
 {
     size_t                     preread;
@@ -40,8 +40,8 @@ ngx_http_read_client_request_body(ngx_http_request_t *r, // 只进一次 // 带�
 
     r->main->count++;
 
-    if (r != r->main || r->request_body || r->discard_body) {
-        r->request_body_no_buffering = 0;
+    if (r != r->main || r->request_body || r->discard_body) {   // 如果是子请求 那么body可能在main中已经读取完了 所以直接调用post_handler
+        r->request_body_no_buffering = 0;                       // 如果是子请求 // 那么就不会走tunnel转发模式
         post_handler(r);
         return NGX_OK;
     }

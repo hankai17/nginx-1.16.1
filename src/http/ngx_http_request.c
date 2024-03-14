@@ -1498,7 +1498,7 @@ ngx_http_process_request_headers(ngx_event_t *rev) // 2事件可重入 解析hea
                 break;
             }
 
-            ngx_http_process_request(r);
+            ngx_http_process_request(r);                            // 里面走各插件handler
 
             break;
         }
@@ -1519,7 +1519,7 @@ ngx_http_process_request_headers(ngx_event_t *rev) // 2事件可重入 解析hea
         break;
     }
 
-    ngx_http_run_posted_requests(c);
+    ngx_http_run_posted_requests(c);                                // 可能插件里触发有subreq功能 然后在这个函数里进行subreq操作?
 }
 
 
@@ -2416,7 +2416,7 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
                        "http posted request: \"%V?%V\"", &r->uri, &r->args);
 
-        r->write_event_handler(r);
+        r->write_event_handler(r);  // 如果有子请求 那么直接调用子请求的写回调 eg: ngx_http_handler
     }
 }
 
@@ -2436,7 +2436,8 @@ ngx_http_post_request(ngx_http_request_t *r, ngx_http_posted_request_t *pr)
     pr->request = r;
     pr->next = NULL;
 
-    for (p = &r->main->posted_requests; *p; p = &(*p)->next) { /* void */ }
+    for (p = &r->main->posted_requests; *p; p = &(*p)->next) { /* void */ } // 把pr挂到 r->main->posted_requests 链上
+                                                                            // posted_requests是 为了给subreq功能而设计的
 
     *p = pr;
 
@@ -2517,10 +2518,10 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
         return;
     }
 
-    if (r != r->main) {
+    if (r != r->main) {             // 如果本请求r是一个子请求
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-        if (r->background) {
+        if (r->background) {        // 如果subreq设置了 无需等待
             if (!r->logged) {
                 if (clcf->log_subrequest) {
                     ngx_http_log_request(r);
@@ -2550,7 +2551,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
 
         pr = r->parent;
 
-        if (r == c->data) {
+        if (r == c->data) {             // 如果本子请求 本身没有孙子请求?
 
             r->main->count--;
 
@@ -2569,7 +2570,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
 
             r->done = 1;
 
-            if (pr->postponed && pr->postponed->request == r) {
+            if (pr->postponed && pr->postponed->request == r) { // 把本子请求从 主请求中移除
                 pr->postponed = pr->postponed->next;
             }
 

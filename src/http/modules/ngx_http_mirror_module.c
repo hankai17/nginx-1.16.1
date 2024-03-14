@@ -118,12 +118,13 @@ ngx_http_mirror_handler(ngx_http_request_t *r)
         ngx_http_set_ctx(r, ctx, ngx_http_mirror_module);
 
         rc = ngx_http_read_client_request_body(r, ngx_http_mirror_body_handler);
-        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {   // 这个函数调用完毕即说明 建链完毕 
             return rc;
         }
 
-        ngx_http_finalize_request(r, NGX_DONE);
-        return NGX_DONE;
+        ngx_http_finalize_request(r, NGX_DONE);  
+        return NGX_DONE;                        // 非常暴力！ 直接让父链core_run_phase中不执行后面的插件了
+                                                // subreq 在其子链中与mirror建链好后 当返回到父链(core_run_phase)中时 不让父链执行后面的插件
     }
 
     return ngx_http_mirror_handler_internal(r);
@@ -142,7 +143,9 @@ ngx_http_mirror_body_handler(ngx_http_request_t *r)
     r->preserve_body = 1;
 
     r->write_event_handler = ngx_http_core_run_phases;
-    ngx_http_core_run_phases(r);
+    ngx_http_core_run_phases(r);                // 继续走原始r的handler/hook   那么就会走到content的handler 在里面与os建链
+                                                // 注意这里是跟os建链 而非mirror的os建链
+                                                // mirror os的建链在这之后 是在ngx_http_run_posted_requests 触发core_run_phase又从头过了一遍handler 
 }
 
 
@@ -160,13 +163,15 @@ ngx_http_mirror_handler_internal(ngx_http_request_t *r)
 
     for (i = 0; i < mlcf->mirror->nelts; i++) {
         if (ngx_http_subrequest(r, &name[i], &r->args, &sr, NULL,
-                                NGX_HTTP_SUBREQUEST_BACKGROUND)
+                                //NGX_HTTP_SUBREQUEST_BACKGROUND)
+                                //NGX_HTTP_SUBREQUEST_IN_MEMORY | NGX_HTTP_SUBREQUEST_WAITED)
+                                NGX_HTTP_SUBREQUEST_WAITED)
             != NGX_OK)
         {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
-        sr->header_only = 1;
+        sr->header_only = 1;        // 设置只关注响应头
         sr->method = r->method;
         sr->method_name = r->method_name;
     }

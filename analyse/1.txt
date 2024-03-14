@@ -1,0 +1,85 @@
+2024/03/14 02:58:37 [debug] 526712#526712: *1 http upstream send request handler
+2024/03/14 02:58:37 [debug] 526712#526712: *1 http upstream send request
+2024/03/14 02:58:37 [debug] 526712#526712: *1 http upstream send request body
+2024/03/14 02:58:37 [debug] 526712#526712: *1 chain writer buf fl:1 s:131
+2024/03/14 02:58:37 [debug] 526712#526712: *1 chain writer in: 00000000007F6598
+2024/03/14 02:58:37 [debug] 526712#526712: *1 writev: 131 of 131
+2024/03/14 02:58:37 [debug] 526712#526712: *1 chain writer out: 0000000000000000
+2024/03/14 02:58:37 [debug] 526712#526712: *1 event timer del: 11: 1467643689
+2024/03/14 02:58:37 [debug] 526712#526712: *1 event timer add: 11: 60000:1467650195
+2024/03/14 02:58:37 [debug] 526712#526712: timer delta: 6506
+2024/03/14 02:58:37 [debug] 526712#526712: worker cycle
+2024/03/14 02:58:37 [debug] 526712#526712: epoll timer: 60000
+2024/03/14 02:58:41 [debug] 526712#526712: epoll: fd:10 ev:2005 d:00007FFFF492F310
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http upstream request: "/?testp"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http upstream process header
+2024/03/14 02:58:41 [debug] 526712#526712: *1 malloc: 00000000007EAA50:4096
+2024/03/14 02:58:41 [debug] 526712#526712: *1 recv: eof:1, avail:1
+2024/03/14 02:58:41 [debug] 526712#526712: *1 recv: fd:10 122 of 4096
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http proxy status 200 "200 OK"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http proxy header: "Set-Cookie: k1=v1"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http proxy header: "Content-type: text/plain"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http proxy header: "Content-Length: 15"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http proxy header: "Connection: Keep-Alive"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http proxy header done
+2024/03/14 02:58:41 [debug] 526712#526712: *1 posix_memalign: 00000000007EBA60:4096 @16
+2024/03/14 02:58:41 [debug] 526712#526712: *1 HTTP/1.1 200 OK
+Server: nginx/1.16.1
+Date: Thu, 14 Mar 2024 06:58:41 GMT
+Content-Type: text/plain
+Content-Length: 15
+Connection: keep-alive
+Set-Cookie: k1=v1
+
+2024/03/14 02:58:41 [debug] 526712#526712: *1 write new buf t:1 f:0 00000000007EBAD0, pos 00000000007EBAD0, size: 167 file: 0, size: 0
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http write filter: l:0 f:0 s:167
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http proxy filter init s:200 h:0 c:0 l:15
+2024/03/14 02:58:41 [debug] 526712#526712: *1 tcp_nodelay
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http upstream process non buffered downstream
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http output filter "/?testp"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http copy filter: "/?testp"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http postpone filter "/?testp" 00000000007F6828
+
+    write old buf
+    write new buf
+
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http copy filter: 0 "/?testp"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 recv: eof:1, avail:0
+2024/03/14 02:58:41 [debug] 526712#526712: *1 recv: fd:10 0 of 3974
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http output filter "/?testp"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http copy filter: "/?testp"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http postpone filter "/?testp" 0000000000000000
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http copy filter: 0 "/?testp"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 event timer del: 10: 1467650195
+2024/03/14 02:58:41 [debug] 526712#526712: *1 event timer add: 10: 60000:1467653493
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http upstream request: "/?testp"
+2024/03/14 02:58:41 [debug] 526712#526712: *1 http upstream dummy handler
+2024/03/14 02:58:41 [debug] 526712#526712: timer delta: 3298
+2024/03/14 02:58:41 [debug] 526712#526712: worker cycle
+2024/03/14 02:58:41 [debug] 526712#526712: epoll timer: 56702
+
+
+
+0x00007ffff68ebce0 in writev () from /usr/lib64/libc.so.6
+#1  0x00000000004536e8 in ngx_writev (c=0x7ffff492f210, vec=0x7fffffffcbc0) at src/os/unix/ngx_writev_chain.c:189
+#2  0x000000000045bac1 in ngx_linux_sendfile_chain (c=0x7ffff492f210, in=0x7f6580, limit=2147479551) at src/os/unix/ngx_linux_sendfile_chain.c:188
+#3  0x00000000004adc16 in ngx_http_write_filter (r=0x7ff540, in=0x7ebb40) at src/http/ngx_http_write_filter_module.c:303
+#4  0x00000000004af4e0 in ngx_http_chunked_body_filter (r=0x7ff540, in=0x7ebb40) at src/http/modules/ngx_http_chunked_filter_module.c:115
+#5  0x00000000004b7145 in ngx_http_gzip_body_filter (r=0x7ff540, in=0x7ebb40) at src/http/modules/ngx_http_gzip_filter_module.c:329
+#6  0x00000000004b90bb in ngx_http_postpone_filter (r=0x7ff540, in=0x7ebb40) at src/http/ngx_http_postpone_filter_module.c:91
+#7  0x00000000004b9b3c in ngx_http_ssi_body_filter (r=0x7ff540, in=0x7ebb40) at src/http/modules/ngx_http_ssi_filter_module.c:413
+#8  0x00000000004c0512 in ngx_http_charset_body_filter (r=0x7ff540, in=0x7ebb40) at src/http/modules/ngx_http_charset_filter_module.c:557
+#9  0x00000000004c333a in ngx_http_sub_body_filter (r=0x7ff540, in=0x7ebb40) at src/http/modules/ngx_http_sub_filter_module.c:299
+#10 0x00000000004c6a51 in ngx_http_trailers_filter (r=0x7ff540, in=0x7ebb40) at src/http/modules/ngx_http_headers_filter_module.c:264
+#11 0x000000000041b185 in ngx_output_chain (ctx=0x7ebba0, in=0x7ebb40) at src/core/ngx_output_chain.c:74
+#12 0x00000000004c7f0e in ngx_http_copy_filter (r=0x7ff540, in=0x7ebb40) at src/http/ngx_http_copy_filter_module.c:152
+#13 0x00000000004b6172 in ngx_http_range_body_filter (r=0x7ff540, in=0x7ebb40) at src/http/modules/ngx_http_range_filter_module.c:635
+#14 0x0000000000472222 in ngx_http_output_filter (r=0x7ff540, in=0x7ebb40) at src/http/ngx_http_core_module.c:1770
+#15 0x000000000049d145 in ngx_http_upstream_process_non_buffered_request (r=0x7ff540, do_write=1) at src/http/ngx_http_upstream.c:3600
+#16 0x000000000049cfc5 in ngx_http_upstream_process_non_buffered_downstream (r=0x7ff540) at src/http/ngx_http_upstream.c:3538
+#17 0x000000000049b915 in ngx_http_upstream_send_response (r=0x7ff540, u=0x7f5880) at src/http/ngx_http_upstream.c:3009
+#18 0x000000000049a507 in ngx_http_upstream_process_header (r=0x7ff540, u=0x7f5880) at src/http/ngx_http_upstream.c:2443
+#19 0x0000000000497f12 in ngx_http_upstream_handler (ev=0x7ffff4007130) at src/http/ngx_http_upstream.c:1290
+#20 0x000000000045b43c in ngx_epoll_process_events (cycle=0x7e6a90, timer=60000, flags=1) at src/event/modules/ngx_epoll_module.c:903
+#21 0x00000000004489ba in ngx_process_events_and_timers (cycle=0x7e6a90) at src/event/ngx_event.c:247
+
