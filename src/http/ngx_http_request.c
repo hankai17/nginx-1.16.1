@@ -2446,7 +2446,8 @@ ngx_http_post_request(ngx_http_request_t *r, ngx_http_posted_request_t *pr)
 
 
 void
-ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
+ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)      // 对于mirror来说，是从server rewrite开始一直到upstream，结束之后，对这个request进行finalize
+                                                                    // 请求发送完毕 或 请求发送阻塞 调用这个函数
 {
     ngx_connection_t          *c;
     ngx_http_request_t        *pr;
@@ -2521,7 +2522,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)
     if (r != r->main) {             // 如果本请求r是一个子请求
         clcf = ngx_http_get_module_loc_conf(r, ngx_http_core_module);
 
-        if (r->background) {        // 如果subreq设置了 无需等待
+        if (r->background) {        // 如果subreq设置了 无需等待 // background直接关闭request
             if (!r->logged) {
                 if (clcf->log_subrequest) {
                     ngx_http_log_request(r);

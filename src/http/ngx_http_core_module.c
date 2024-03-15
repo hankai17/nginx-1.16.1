@@ -825,7 +825,7 @@ ngx_http_handler(ngx_http_request_t *r)
                               || r->headers_in.chunked);
         r->phase_handler = 0;
 
-    } else {
+    } else {        // 对于mirror来说 因为是interal 从server_rewrite开始
         cmcf = ngx_http_get_module_main_conf(r, ngx_http_core_module);
         r->phase_handler = cmcf->phase_engine.server_rewrite_index;
     }
