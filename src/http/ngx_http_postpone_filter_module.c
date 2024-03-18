@@ -67,7 +67,6 @@ ngx_http_postpone_filter(ngx_http_request_t *r, ngx_chain_t *in)
     }
 
     if (r != c->data) {     // r是主请求 而c->data可能是子请求 (eg: subreq的响应中sleep了 先收到了主请求响应) 参考ngx_http_subrequest中设置了这个data
-                            // r是子请求 而c->data是该子请求本身 (eg: 主请求的响应中sleep了 先收到了子请求响应)
 
         if (in) {
             if (ngx_http_postpone_filter_add(r, in) != NGX_OK) {
@@ -85,6 +84,8 @@ ngx_http_postpone_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
         return NGX_OK;  // 如果这个请求中有子请求那么 不会走后面的filter 我们知道writev在后面的filter中 所以这里就不会把响应发给client
     }
+    // r是主请求 且无子请求
+    // r是子请求 而c->data是该子请求本身 (eg: 主请求的响应中sleep了 先收到了子请求响应)
 
     if (r->postponed == NULL) { // 如果先收到了子请求响应 那么会把自己从主请求中的postponed摘下来 参考ngx_http_finalize_request
 

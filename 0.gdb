@@ -138,7 +138,7 @@ set print pretty
 #b ngx_http_core_content_phase
 #b ngx_http_handler
 #b ngx_http_request.c:2419
-#b ngx_http_finalize_request
+b ngx_http_finalize_request
 #b ngx_epoll_module.c:911
 #b ngx_http_request.c:2543
 #b ngx_http_request.c:2581

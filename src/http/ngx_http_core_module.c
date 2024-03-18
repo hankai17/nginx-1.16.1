@@ -2336,7 +2336,7 @@ ngx_http_subrequest(ngx_http_request_t *r,
         sr->filter_need_in_memory = 1;
     }
 
-    if (!sr->background) {
+    if (!sr->background) {  // 如果阻塞等待则"挂号" 挂了两个地方一个是主链接的c->data 一个是主链接的postponded
         if (c->data == r && r->postponed == NULL) {
             c->data = sr;
         }

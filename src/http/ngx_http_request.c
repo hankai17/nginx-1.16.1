@@ -2596,7 +2596,7 @@ ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)      // 对于mir
             return;
         }
 
-        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
+        ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,           // 怎么唤醒父?
                        "http wake parent request: \"%V?%V\"",
                        &pr->uri, &pr->args);
 
