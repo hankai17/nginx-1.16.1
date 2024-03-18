@@ -312,7 +312,7 @@ void *do_post(void *arg)
                 inet_ntop(AF_INET, &(*ts).cliaddr.sin_addr, str, sizeof(str)),
                 ntohs((*ts).cliaddr.sin_port));                 //打印客户端信息(IP/PORT)
 
-        //sleep(10);
+        sleep(10);
         printf("%s\n", buf);
         Write(ts->connfd, resp_1024, strlen(resp_1024));                              //回写给客户端
         printf("%s\n", resp_1024);

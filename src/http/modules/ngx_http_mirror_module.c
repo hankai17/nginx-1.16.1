@@ -163,9 +163,9 @@ ngx_http_mirror_handler_internal(ngx_http_request_t *r)
 
     for (i = 0; i < mlcf->mirror->nelts; i++) {
         if (ngx_http_subrequest(r, &name[i], &r->args, &sr, NULL,
-                                //NGX_HTTP_SUBREQUEST_BACKGROUND)
+                                NGX_HTTP_SUBREQUEST_BACKGROUND)
                                 //NGX_HTTP_SUBREQUEST_IN_MEMORY | NGX_HTTP_SUBREQUEST_WAITED)
-                                NGX_HTTP_SUBREQUEST_WAITED)
+                                //NGX_HTTP_SUBREQUEST_WAITED)
             != NGX_OK)
         {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;

@@ -2448,6 +2448,7 @@ ngx_http_post_request(ngx_http_request_t *r, ngx_http_posted_request_t *pr)
 void
 ngx_http_finalize_request(ngx_http_request_t *r, ngx_int_t rc)      // 对于mirror来说，是从server rewrite开始一直到upstream，结束之后，对这个request进行finalize
                                                                     // 请求发送完毕 或 请求发送阻塞 调用这个函数
+                                                                    // 发送os响应 透传给客户端之后 调用这个函数
 {
     ngx_connection_t          *c;
     ngx_http_request_t        *pr;

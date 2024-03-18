@@ -29,10 +29,10 @@ set print pretty
 #b ngx_http_modsecurity_pre_access_handler
 
 #生命周期分析
-#b ngx_get_connection
-#b ngx_http_init_connection
-#b ngx_http_alloc_request
-#b ngx_http_named_location
+b ngx_get_connection
+b ngx_http_init_connection
+b ngx_http_alloc_request
+b ngx_http_named_location
 
 #event初始化 以及 并发数分析
 #b ngx_worker_process_cycle
@@ -144,7 +144,7 @@ b ngx_http_finalize_request
 #b ngx_http_request.c:2581
 #b ngx_http_request.c:2587
 #b ngx_http_mirror_module.c:146
-b ngx_http_postpone_filter
+#b ngx_http_postpone_filter
 #b ngx_http_core_module.c:2339
 #b ngx_http_request.c:2574
-b ngx_http_request.c:2522
+#b ngx_http_request.c:2522
