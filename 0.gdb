@@ -1,7 +1,8 @@
 set args -c /usr/local/nginx/conf/nginx.conf
 set print pretty
 
-#b ngx_http_read_client_request_body
+#post
+b ngx_http_read_client_request_body
 #b ngx_http_modsecurity_pre_access.c:119
 #b ngx_http_modsecurity_pre_access_handler
 #b ngx_http_modsecurity_request_read
@@ -29,10 +30,10 @@ set print pretty
 #b ngx_http_modsecurity_pre_access_handler
 
 #生命周期分析
-b ngx_get_connection
-b ngx_http_init_connection
-b ngx_http_alloc_request
-b ngx_http_named_location
+#b ngx_get_connection
+#b ngx_http_init_connection
+#b ngx_http_alloc_request
+#b ngx_http_named_location
 
 #event初始化 以及 并发数分析
 #b ngx_worker_process_cycle
@@ -138,7 +139,7 @@ b ngx_http_named_location
 #b ngx_http_core_content_phase
 #b ngx_http_handler
 #b ngx_http_request.c:2419
-b ngx_http_finalize_request
+#b ngx_http_finalize_request
 #b ngx_epoll_module.c:911
 #b ngx_http_request.c:2543
 #b ngx_http_request.c:2581
@@ -148,3 +149,4 @@ b ngx_http_finalize_request
 #b ngx_http_core_module.c:2339
 #b ngx_http_request.c:2574
 #b ngx_http_request.c:2522
+

@@ -41,7 +41,9 @@ ngx_http_read_client_request_body(ngx_http_request_t *r,        // 只进一次 
     r->main->count++;
 
     if (r != r->main || r->request_body || r->discard_body) {   // 如果是子请求 那么body可能在main中已经读取完了 所以直接调用post_handler
-        r->request_body_no_buffering = 0;                       // 如果是子请求 // 那么就不会走tunnel转发模式
+                                                                // 如果是子请求 // 那么就不会走tunnel转发模式
+                                                                // 如果之前某个模块已经调用过ngx_http_read_client_request_body了 且已经把post的body体读取完毕(r->request_body非空)
+        r->request_body_no_buffering = 0;                       
         post_handler(r);
         return NGX_OK;
     }
@@ -864,6 +866,7 @@ ngx_http_request_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 static ngx_int_t
 ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in) // 分配新chian 并把老chain清空 很诡异(pwrite确保)的用法
+                                                                            // 拷贝in中的buffer元素(深深拷贝) + 清空in中的buffer = in 的 move语义
 {
     size_t                     size;
     ngx_int_t                  rc;
@@ -908,7 +911,7 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in) // �
 
         size = cl->buf->last - cl->buf->pos;
 
-        if ((off_t) size < rb->rest) {  // 修改了in中buffer指针  pos = last
+        if ((off_t) size < rb->rest) {                                      // 修改了in中buffer指针  pos = last
             cl->buf->pos = cl->buf->last;
             rb->rest -= size;
 
@@ -923,9 +926,11 @@ ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in) // �
         ll = &tl->next;
     }
 
-    rc = ngx_http_top_request_body_filter(r, out); // 感觉这里的三剑客毫无意义 pwrite肯定是全部写完才返回的 
+    rc = ngx_http_top_request_body_filter(r, out);                          // 感觉这里的三剑客毫无意义 pwrite肯定是全部写完才返回的 
+                                                                            // ngx_http_request_body_save_filter
+                                                                            //   pwrite完后 里面把out的buf置空(pos = last)
 
-    ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &out, //out为空的buf串 结果就是busy为空 free挂满 
+    ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &out,            // out为空的buf串 结果就是busy为空 free挂满 
                             (ngx_buf_tag_t) &ngx_http_read_client_request_body);
 
     return rc;
@@ -1124,11 +1129,12 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     /* TODO: coalesce neighbouring buffers */
 
-    if (ngx_chain_add_copy(r->pool, &rb->bufs, in) != NGX_OK) { // 重新构造一个一模一样的chain 且对原始chain无影响
+    if (ngx_chain_add_copy(r->pool, &rb->bufs, in) != NGX_OK) {         // 重新构造一个一模一样的chain 且对原始chain无影响
+                                                                        // 深拷贝 共享buf指针  (注意跟深深拷贝的区别)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
-    if (r->request_body_no_buffering) {	// 如果有自己的插件 request_body_no_buffering是没有机会被赋值为1的
+    if (r->request_body_no_buffering) {	                                // 如果有自己的插件 request_body_no_buffering是没有机会被赋值为1的
         return NGX_OK;
     }
 
@@ -1147,7 +1153,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     if (rb->temp_file || r->request_body_in_file_only) {
 
-        if (ngx_http_write_request_body(r) != NGX_OK) { // 将构造的新chain pwrite入磁盘 且清空buf
+        if (ngx_http_write_request_body(r) != NGX_OK) {                 // 将构造的新chain pwrite入磁盘 且清空buf
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
