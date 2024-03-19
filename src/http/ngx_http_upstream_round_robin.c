@@ -37,7 +37,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf, // 调用时机是init main c
     ngx_http_upstream_rr_peer_t   *peer, **peerp;
     ngx_http_upstream_rr_peers_t  *peers, *backup;
 
-    us->peer.init = ngx_http_upstream_init_round_robin_peer;    // 设置peer_init // 建联前夕调用 4UPSTREAM ngx_http_upstream_init_round_robin_peer初始化pc的get/free/try
+    us->peer.init = ngx_http_upstream_init_round_robin_peer;    // 设置peer_init // 建联前夕调用 4 UPSTREAM ngx_http_upstream_init_round_robin_peer初始化pc的get/free/try
 
     if (us->servers) {
         server = us->servers->elts;
@@ -241,7 +241,7 @@ ngx_http_upstream_init_round_robin(ngx_conf_t *cf, // 调用时机是init main c
 
 
 ngx_int_t
-ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r, // 建联前夕 4UPSTREAM ngx_http_upstream_init_round_robin_peer初始化pc的get/free/try
+ngx_http_upstream_init_round_robin_peer(ngx_http_request_t *r, // 建联前夕 4 UPSTREAM ngx_http_upstream_init_round_robin_peer初始化pc的get/free/try
     ngx_http_upstream_srv_conf_t *us)
 {
     ngx_uint_t                         n;

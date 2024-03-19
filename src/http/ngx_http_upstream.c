@@ -477,7 +477,7 @@ ngx_conf_bitmask_t  ngx_http_upstream_ignore_headers_masks[] = {
 
 
 ngx_int_t
-ngx_http_upstream_create(ngx_http_request_t *r) // 1UPSTREAM
+ngx_http_upstream_create(ngx_http_request_t *r) // 1 UPSTREAM
 {
     ngx_http_upstream_t  *u;
 
@@ -510,7 +510,7 @@ ngx_http_upstream_create(ngx_http_request_t *r) // 1UPSTREAM
 
 
 void
-ngx_http_upstream_init(ngx_http_request_t *r) // 与OS建联必须走 ngx_http_request_body.c // 竟从解析请求body中触发 怪怪的 // 2UPSTREAM
+ngx_http_upstream_init(ngx_http_request_t *r) // 与OS建联必须走 ngx_http_request_body.c // 竟从解析请求body中触发 怪怪的 // 2 UPSTREAM
 {
     ngx_connection_t     *c;
 
@@ -547,7 +547,7 @@ ngx_http_upstream_init(ngx_http_request_t *r) // 与OS建联必须走 ngx_http_r
 
 
 static void
-ngx_http_upstream_init_request(ngx_http_request_t *r) // 3UPSTREAM 
+ngx_http_upstream_init_request(ngx_http_request_t *r) // 3 UPSTREAM 
 {
     ngx_str_t                      *host;
     ngx_uint_t                      i;
@@ -619,7 +619,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r) // 3UPSTREAM
     }
 
     if (r->request_body) {
-        u->request_bufs = r->request_body->bufs;
+        u->request_bufs = r->request_body->bufs;                // 3 UPSTREAM 把post累积的bufs文件 赋给 request_bufs
     }
 
     if (u->create_request(r) != NGX_OK) {
@@ -644,7 +644,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r) // 3UPSTREAM
     u->output.bufs.size = clcf->client_body_buffer_size;
 
     if (u->output.output_filter == NULL) {
-        u->output.output_filter = ngx_chain_writer; // 3UPSTREAM 建联前夕 设置output_filter(将于可写时调用 即ngx_http_upstream_send_request_body里ngx_output_chain(&u->output, out))为发送函数
+        u->output.output_filter = ngx_chain_writer; // 3 UPSTREAM 建联前夕 设置output_filter(将于可写时调用 即ngx_http_upstream_send_request_body里ngx_output_chain(&u->output, out))为发送函数
                                                     // 这就是nginx的局限性吧 在send_request之前 竟没有hook的位置 只是把hook写死成ngx_chain_writer发送函数
         u->output.filter_ctx = &u->writer;
     }
@@ -794,7 +794,7 @@ found:
     u->ssl_name = uscf->host;
 #endif
 
-    if (uscf->peer.init(r, uscf) != NGX_OK) { // 4UPSTREAM ngx_http_upstream_init_round_robin_peer初始化pc的get/free/try
+    if (uscf->peer.init(r, uscf) != NGX_OK) { // 4 UPSTREAM ngx_http_upstream_init_round_robin_peer初始化pc的get/free/try
         ngx_http_upstream_finalize_request(r, u,
                                            NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
@@ -808,7 +808,7 @@ found:
         u->peer.tries = u->conf->next_upstream_tries;
     }
 
-    ngx_http_upstream_connect(r, u); // 4UPSTREAM 与os建联
+    ngx_http_upstream_connect(r, u); // 4 UPSTREAM 与os建联
 }
 
 
@@ -1503,7 +1503,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
 
 
 static void
-ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u) // 4UPSTREAM 与OS建联 设置u的读写回调
+ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u) // 4 UPSTREAM 与OS建联 设置u的读写回调
 {
     ngx_int_t          rc;
     ngx_connection_t  *c;
@@ -1529,7 +1529,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u) // 4UPS
     u->state->connect_time = (ngx_msec_t) -1;
     u->state->header_time = (ngx_msec_t) -1;
 
-    rc = ngx_event_connect_peer(&u->peer); // 4UPSTREAM与OS建联 起socket 拿到c 挂树上
+    rc = ngx_event_connect_peer(&u->peer); // 4 UPSTREAM与OS建联 起socket 拿到c 挂树上
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http upstream connect: %i", rc);
@@ -1561,11 +1561,11 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u) // 4UPS
 
     c->data = r;
 
-    c->write->handler = ngx_http_upstream_handler;  // 4UPSTREAM 与OS建联后 置c的读写事件回调
+    c->write->handler = ngx_http_upstream_handler;  // 4 UPSTREAM 与OS建联后 置c的读写事件回调
     c->read->handler = ngx_http_upstream_handler;
 
-    u->write_event_handler = ngx_http_upstream_send_request_handler; // 4UPSTREAM 置u业务写回调 即发送请求
-    u->read_event_handler = ngx_http_upstream_process_header;   // 4UPSTREAM 设置u业务读回调 即读os响应
+    u->write_event_handler = ngx_http_upstream_send_request_handler; // 4 UPSTREAM 置u业务写回调 即发送请求
+    u->read_event_handler = ngx_http_upstream_process_header;   // 4 UPSTREAM 设置u业务读回调 即读os响应
 
     c->sendfile &= r->connection->sendfile;
     u->output.sendfile = c->sendfile;
@@ -1650,7 +1650,7 @@ ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u) // 4UPS
 
 #endif
 
-    ngx_http_upstream_send_request(r, u, 1); // 5UPSTREAM尝试发送请求
+    ngx_http_upstream_send_request(r, u, 1); // 5 UPSTREAM尝试发送请求
 }
 
 
@@ -1999,7 +1999,7 @@ ngx_http_upstream_reinit(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
 
 static void
-ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u, // 5UPSTREAM尝试发送请求
+ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u, // 5 UPSTREAM尝试发送请求
     ngx_uint_t do_write)
 {
     ngx_int_t          rc;
@@ -2021,7 +2021,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u, //
 
     c->log->action = "sending request to upstream";
 
-    rc = ngx_http_upstream_send_request_body(r, u, do_write); // 5UPSTREAM建立POST大tunnel 或 发送GET请求 // POST的大tunnel 或 GET的小发送
+    rc = ngx_http_upstream_send_request_body(r, u, do_write); // 5 UPSTREAM建立POST大tunnel 或 发送GET请求 // POST的大tunnel 或 GET的小发送
 
     if (rc == NGX_ERROR) {
         ngx_http_upstream_next(r, u, NGX_HTTP_UPSTREAM_FT_ERROR);
@@ -2108,7 +2108,7 @@ ngx_http_upstream_send_request(ngx_http_request_t *r, ngx_http_upstream_t *u, //
 
 
 static ngx_int_t
-ngx_http_upstream_send_request_body(ngx_http_request_t *r, // 5UPSTREAM建立POST大tunnel 或 发送GET请求
+ngx_http_upstream_send_request_body(ngx_http_request_t *r, // 5 UPSTREAM建立POST大tunnel 或 发送GET请求
     ngx_http_upstream_t *u, ngx_uint_t do_write)
 {
     ngx_int_t                  rc;
@@ -2125,7 +2125,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r, // 5UPSTREAM建立POS
 
         if (!u->request_sent) {
             u->request_sent = 1;
-            out = u->request_bufs;
+            out = u->request_bufs;      // 参考3 UPSTREAM
 
         } else {
             out = NULL;
@@ -2288,7 +2288,7 @@ ngx_http_upstream_read_request_handler(ngx_http_request_t *r)
 
 
 static void
-ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u) // 6UPSTREAM 读到OS响应后 开始构建第二个tunnel // 1读os header
+ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u) // 6 UPSTREAM 读到OS响应后 开始构建第二个tunnel // 1读os header
 {
     ssize_t            n;
     ngx_int_t          rc;

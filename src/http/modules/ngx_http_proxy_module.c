@@ -846,7 +846,7 @@ static ngx_path_init_t  ngx_http_proxy_temp_path = {
 
 
 static ngx_int_t
-ngx_http_proxy_handler(ngx_http_request_t *r) // upstream 是在request的handler中 开始的 // ngx_http_core_module.c +1289 // 0UPSTREAM
+ngx_http_proxy_handler(ngx_http_request_t *r) // upstream 是在request的handler中 开始的 // ngx_http_core_module.c +1289 // 0 UPSTREAM
 {
     ngx_int_t                    rc;
     ngx_http_upstream_t         *u;
@@ -856,7 +856,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r) // upstream 是在request的handle
     ngx_http_proxy_main_conf_t  *pmcf;
 #endif
 
-    if (ngx_http_upstream_create(r) != NGX_OK) { // 分配upstream // 1UPSTREAM
+    if (ngx_http_upstream_create(r) != NGX_OK) { // 分配upstream // 1 UPSTREAM
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
 
@@ -934,7 +934,7 @@ ngx_http_proxy_handler(ngx_http_request_t *r) // upstream 是在request的handle
         r->request_body_no_buffering = 1;                               // 不用文件缓冲之类的东西 即将建立tunnel
     }
 
-    rc = ngx_http_read_client_request_body(r, ngx_http_upstream_init);  // 与OS建联必须要走ngx_http_request_body.c 怪怪的 // 2UPSTREAM
+    rc = ngx_http_read_client_request_body(r, ngx_http_upstream_init);  // 与OS建联必须要走ngx_http_request_body.c 怪怪的 // 2 UPSTREAM
                                                                         // 默认没有插件的情况下 当走完所有handler 在最后一个handler里调用该函数 该函数 
                                                                         // 如果不是POST请求 则于OS建联
                                                                         // 如果是POST请求 根据no_buffering要么累积到文件里 要么与OS建联组与c端的tunnel

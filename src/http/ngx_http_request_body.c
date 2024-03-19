@@ -28,6 +28,7 @@ static ngx_int_t ngx_http_request_body_chunked_filter(ngx_http_request_t *r,
 
 ngx_int_t
 ngx_http_read_client_request_body(ngx_http_request_t *r,        // 只进一次 // 带有do(ngx_http_do_read_client_request_body)的进多次
+                                                                // 这里只进一次的意思不是 只调用了一次 而是全局有很多插件都可能读取body 都调用这个函数 而实际上由于r->request_body的把持 只有第一个调用该函数的插件才会真正的执行
     ngx_http_client_body_handler_pt post_handler)
 {
     size_t                     preread;

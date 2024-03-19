@@ -182,7 +182,7 @@ ngx_http_upstream_init_keepalive(ngx_conf_t *cf,
 
 static ngx_int_t
 ngx_http_upstream_init_keepalive_peer(ngx_http_request_t *r,
-    ngx_http_upstream_srv_conf_t *us) // 建联前夕 4UPSTREAM 初始化pc的get/free/try
+    ngx_http_upstream_srv_conf_t *us) // 建联前夕 4 UPSTREAM 初始化pc的get/free/try
 {
     ngx_http_upstream_keepalive_peer_data_t  *kp;
     ngx_http_upstream_keepalive_srv_conf_t   *kcf;
