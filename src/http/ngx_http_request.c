@@ -2400,8 +2400,8 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
             return;
         }
 
-        r = c->data;
-        pr = r->main->posted_requests;
+        r = c->data;                    // 如果c(主) 有子链接 那么c->data 早已在ngx_http_subrequest被赋值为了子链接本身
+        pr = r->main->posted_requests;  // 把子链接摘下来
 
         if (pr == NULL) {
             return;
@@ -2416,7 +2416,7 @@ ngx_http_run_posted_requests(ngx_connection_t *c)
         ngx_log_debug2(NGX_LOG_DEBUG_HTTP, c->log, 0,
                        "http posted request: \"%V?%V\"", &r->uri, &r->args);
 
-        r->write_event_handler(r);  // 如果有子请求 那么直接调用子请求的写回调 eg: ngx_http_handler
+        r->write_event_handler(r);      // 如果有子请求 那么直接调用子请求的写回调 eg: ngx_http_handler // 注意这里的传参是 子链接
     }
 }
 

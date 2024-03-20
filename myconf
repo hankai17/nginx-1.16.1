@@ -9,6 +9,7 @@
 --with-threads \
 --with-debug \
 --with-http_sub_module \
+--with-http_auth_request_module \
 --add-module=./my_conf/http_upstream_persistent \
 --add-module=./my_conf/headers-more-nginx-module-master \
 --add-module=./private_conf/ngx_http_security_stats \

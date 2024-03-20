@@ -187,7 +187,7 @@ ngx_http_auth_request_handler(ngx_http_request_t *r)
     ps->data = ctx;
 
     if (ngx_http_subrequest(r, &arcf->uri, NULL, &sr, ps,
-                            NGX_HTTP_SUBREQUEST_WAITED)
+                            NGX_HTTP_SUBREQUEST_WAITED)                 // hankai1 注册subreq到post上
         != NGX_OK)
     {
         return NGX_ERROR;
@@ -209,7 +209,8 @@ ngx_http_auth_request_handler(ngx_http_request_t *r)
 
     ngx_http_set_ctx(r, ctx, ngx_http_auth_request_module);
 
-    return NGX_AGAIN;
+    return NGX_AGAIN;                                                   // hankai2 返回NGX_AGAIN 导致checker里 非常暴力的结束整个phase
+                                                                        //    但是没关系 post流程会再走一边"完整的" phase   注意是sr子链接走的 而非主链接
 }
 
 

@@ -145,7 +145,7 @@ ngx_http_subreq_handler(ngx_http_request_t *r) {
     ctx->done = 0;
     ngx_http_set_ctx(r, ctx, ngx_http_subreq_module);
 
-    rc = ngx_http_read_client_request_body(r, ngx_http_subreq_body_handler); // 读取post请求
+    rc = ngx_http_read_client_request_body(r, ngx_http_subreq_body_handler);    // hankai1.0 读取post请求 // 读完整后分配sr并注册到post上
     if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
                       "err: %d",
@@ -154,7 +154,7 @@ ngx_http_subreq_handler(ngx_http_request_t *r) {
     }
 
     r->main->count--;
-    return NGX_AGAIN;
+    return NGX_AGAIN;                                                           // hankai2 非常暴力直接把phase断掉了
 }
 
 static void
@@ -178,7 +178,7 @@ ngx_http_subreq_body_handler(ngx_http_request_t *r) {   // 读取完整个post b
             NULL,
             &sr,                            // subrequest的 r
             psr,                            // 因为是waited类型的subreq 所以要有一个回调来处理返回结果
-            NGX_HTTP_SUBREQUEST_IN_MEMORY | NGX_HTTP_SUBREQUEST_WAITED)
+            NGX_HTTP_SUBREQUEST_IN_MEMORY | NGX_HTTP_SUBREQUEST_WAITED)         // hankai1.1 分配sr注册到post上
         != NGX_OK) {
         return ;
     }
@@ -190,10 +190,10 @@ ngx_http_subreq_body_handler(ngx_http_request_t *r) {   // 读取完整个post b
     r->preserve_body = 1;
 
 #if 0
-    ngx_http_run_posted_requests(r->connection);
+    ngx_http_run_posted_requests(r->connection);                                // hankai1.2 手动触发post流程
 #else
     r->write_event_handler = ngx_http_core_run_phases;
-    ngx_http_core_run_phases(r);
+    ngx_http_core_run_phases(r);                                                // hankai1.2 手动触发core_run_phase流程
 #endif
 }
 
@@ -229,7 +229,7 @@ ngx_http_subreq_init(ngx_conf_t *cf) {
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
 
-    h = ngx_array_push(&cmcf->phases[NGX_HTTP_PREACCESS_PHASE].handlers);
+    h = ngx_array_push(&cmcf->phases[NGX_HTTP_PREACCESS_PHASE].handlers); //默认checker: ngx_http_core_generic_phase 
     if (h == NULL) {
         return NGX_ERROR;
     }
