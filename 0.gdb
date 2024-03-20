@@ -2,7 +2,7 @@ set args -c /usr/local/nginx/conf/nginx.conf
 set print pretty
 
 #post
-b ngx_http_read_client_request_body
+#b ngx_http_read_client_request_body
 #b ngx_http_modsecurity_pre_access.c:119
 #b ngx_http_modsecurity_pre_access_handler
 #b ngx_http_modsecurity_request_read
@@ -129,7 +129,7 @@ b ngx_http_read_client_request_body
 #b ngx_http_ssl_client_hello_handler
 
 #mirror
-#b ngx_http_mirror_handler
+b ngx_http_mirror_handler
 #b ngx_http_mirror_handler_internal
 #b ngx_http_request.c:2524
 #b ngx_http_run_posted_requests
@@ -150,3 +150,7 @@ b ngx_http_read_client_request_body
 #b ngx_http_request.c:2574
 #b ngx_http_request.c:2522
 
+#subreq
+b ngx_http_subreq_body_handler
+b ngx_http_read_client_request_body
+#b ngx_http_mirror_module.c:126

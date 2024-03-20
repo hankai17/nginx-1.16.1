@@ -1,0 +1,14 @@
+SRC="$ngx_addon_dir/"
+
+#NGX_ADDON_DEPS="\
+#$NGX_ADDON_DEPS \
+#"
+
+NGX_ADDON_SRCS="$NGX_ADDON_SRCS \
+$SRC/ngx_http_subreq_module.c \
+"
+
+filter_module_name=ngx_http_subreq_module
+HTTP_MODULES="$HTTP_MODULES ngx_http_subreq_module"
+
+

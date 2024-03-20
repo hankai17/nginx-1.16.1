@@ -105,7 +105,9 @@ ngx_http_mirror_handler(ngx_http_request_t *r)
         ctx = ngx_http_get_module_ctx(r, ngx_http_mirror_module);
 
         if (ctx) {
-            return ctx->status;
+            return ctx->status;                 // 如果这个r已经绑定了ctx 那么就会返回 NGX_DECLINED(ngx_http_mirror_body_handler里 ngx_http_mirror_handler_internal)
+                                                // 由于nginx的phase设计机制 这个回调/钩子函数是可以重复调用的
+                                                // 一旦重复调用则 根据返回值进行phase的跳转 还是 终结
         }
 
         ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_mirror_ctx_t));
@@ -118,13 +120,14 @@ ngx_http_mirror_handler(ngx_http_request_t *r)
         ngx_http_set_ctx(r, ctx, ngx_http_mirror_module);
 
         rc = ngx_http_read_client_request_body(r, ngx_http_mirror_body_handler);
-        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {   // 这个函数调用完毕即说明 建链完毕 
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {   // 这个函数调用完毕即说明 即与OS建链完毕 
             return rc;
         }
 
         ngx_http_finalize_request(r, NGX_DONE);  
         return NGX_DONE;                        // 非常暴力！ 直接让父链core_run_phase中不执行后面的插件了
-                                                // subreq 在其子链中与mirror建链好后 当返回到父链(core_run_phase)中时 不让父链执行后面的插件
+                                                // 注意此时仅仅是与OS建链完毕 而subreq在其子链中与mirror的建链 
+                                                // 是在返回到core_run_phase后再返回到上层后 在ngx_http_run_posted_requests中触发的一个新core_run_phase中进行的
     }
 
     return ngx_http_mirror_handler_internal(r);

@@ -211,7 +211,7 @@ void ngx_http_modsecurity_pre_access_finalizer(ngx_event_t *ev){
             ngx_http_finalize_request(ctx->r, ctx->return_code);
         }
 
-    ngx_http_run_posted_requests(ctx->r->connection);
+    ngx_http_run_posted_requests(ctx->r->connection);   // 这里为什么用ngx_http_run_posted_requests ???
 }
 
 ngx_int_t ngx_http_modsecurity_pre_access_handler(ngx_http_request_t *r)
