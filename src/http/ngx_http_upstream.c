@@ -1284,13 +1284,14 @@ ngx_http_upstream_handler(ngx_event_t *ev) // UPSTREAM osvc的事件回调
     }
 
     if (ev->write) {
-        u->write_event_handler(r, u); // UPSTREAM osvc的业务回调
+        u->write_event_handler(r, u);   // UPSTREAM osvc的业务回调
 
     } else {
         u->read_event_handler(r, u);
     }
 
-    ngx_http_run_posted_requests(c);
+    ngx_http_run_posted_requests(c);    // UPSTREAM 与vc(ngx_http_process_request_headers)方向相呼应
+                                        //    用以唤醒父请求的phase
 }
 
 

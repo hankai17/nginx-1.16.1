@@ -99,7 +99,9 @@ ngx_module_t  ngx_http_auth_request_module = {
 
 
 static ngx_int_t
-ngx_http_auth_request_handler(ngx_http_request_t *r)
+ngx_http_auth_request_handler(ngx_http_request_t *r)                    // hankai0 客户端请求方向正常的phase 回调
+                                                                        // hankai4 收到响应后 并且处理完响应后 在ngx_http_upstream_handler中调用最后一个函数 ngx_http_run_posted_requests 
+                                                                        //      用以唤醒主请求的phase继续执行
 {
     ngx_table_elt_t               *h, *ho;
     ngx_http_request_t            *sr;
@@ -164,7 +166,7 @@ ngx_http_auth_request_handler(ngx_http_request_t *r)
         if (ctx->status >= NGX_HTTP_OK
             && ctx->status < NGX_HTTP_SPECIAL_RESPONSE)
         {
-            return NGX_OK;
+            return NGX_OK;                                              // hankai4 返回OK 让父链接的phase继续执行 从而走到content阶段与真实源站建链
         }
 
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
@@ -211,6 +213,7 @@ ngx_http_auth_request_handler(ngx_http_request_t *r)
 
     return NGX_AGAIN;                                                   // hankai2 返回NGX_AGAIN 导致checker里 非常暴力的结束整个phase
                                                                         //    但是没关系 post流程会再走一边"完整的" phase   注意是sr子链接走的 而非主链接
+                                                                        //        然后子链接走到content phase则于auth服务器建链 然后整个回调结束
 }
 
 
@@ -223,7 +226,7 @@ ngx_http_auth_request_done(ngx_http_request_t *r, void *data, ngx_int_t rc)
                    "auth request done s:%ui", r->headers_out.status);
 
     ctx->done = 1;
-    ctx->status = r->headers_out.status;
+    ctx->status = r->headers_out.status;                                // hankai3 收到auth服务器响应透传给vc后 finalize中 调用
 
     return rc;
 }

@@ -296,7 +296,7 @@ void *do_post(void *arg)
     struct s_info *ts = (struct s_info*)arg;
     char buf[MAXLINE];
     char str[INET_ADDRSTRLEN];
-    char resp_1024[1024] = "HTTP/1.1 200 OK\r\nSet-Cookie:k1=v1\r\nContent-Length: 12\r\n\r\nabcdefghijkldef";
+    char resp_1024[1024] = "HTTP/1.1 200 OK\r\nSet-Cookie:k1=v1\r\nContent-Length: 12\r\n\r\nabcdefghijkl";
     if (1) 
     {
         memset(buf, 0, sizeof(buf));

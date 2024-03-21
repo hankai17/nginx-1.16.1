@@ -83,7 +83,8 @@ ngx_module_t  ngx_http_mirror_module = {
 
 
 static ngx_int_t
-ngx_http_mirror_handler(ngx_http_request_t *r)
+ngx_http_mirror_handler(ngx_http_request_t *r)      // hankai0 
+                                                    // hankai1.3 重入
 {
     ngx_int_t                    rc;
     ngx_http_mirror_ctx_t       *ctx;
@@ -105,9 +106,10 @@ ngx_http_mirror_handler(ngx_http_request_t *r)
         ctx = ngx_http_get_module_ctx(r, ngx_http_mirror_module);
 
         if (ctx) {
-            return ctx->status;                 // 如果这个r已经绑定了ctx 那么就会返回 NGX_DECLINED(ngx_http_mirror_body_handler里 ngx_http_mirror_handler_internal)
-                                                // 由于nginx的phase设计机制 这个回调/钩子函数是可以重复调用的
-                                                // 一旦重复调用则 根据返回值进行phase的跳转 还是 终结
+            return ctx->status;                     // hankai1.4
+                                                    // 如果这个r已经绑定了ctx 那么就会返回 NGX_DECLINED(hankai1.1)
+                                                    // 由于nginx的phase设计机制 这个回调/钩子函数是可以重复调用的
+                                                    // 一旦重复调用则 根据返回值进行phase的跳转(这里是跳转继续执行phase) 还是 终结
         }
 
         ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_mirror_ctx_t));
@@ -119,15 +121,16 @@ ngx_http_mirror_handler(ngx_http_request_t *r)
 
         ngx_http_set_ctx(r, ctx, ngx_http_mirror_module);
 
+                                                    // hankai1 读取body
         rc = ngx_http_read_client_request_body(r, ngx_http_mirror_body_handler);
-        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {   // 这个函数调用完毕即说明 即与OS建链完毕 
+        if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {      // hankai1.6 这个函数调用完毕即说明 即与OS建链完毕 
             return rc;
         }
 
         ngx_http_finalize_request(r, NGX_DONE);  
-        return NGX_DONE;                        // 非常暴力！ 直接让父链core_run_phase中不执行后面的插件了
-                                                // 注意此时仅仅是与OS建链完毕 而subreq在其子链中与mirror的建链 
-                                                // 是在返回到core_run_phase后再返回到上层后 在ngx_http_run_posted_requests中触发的一个新core_run_phase中进行的
+        return NGX_DONE;                            // 非常暴力！ 直接让父链core_run_phase中不执行后面的插件了
+                                                    // 注意此时仅仅是与OS建链完毕 而subreq在其子链中与mirror的建链 
+                                                    // hankai2 是在返回到core_run_phase后再返回到上层后 在ngx_http_run_posted_requests(hankai2)中触发的一个新core_run_phase中进行的
     }
 
     return ngx_http_mirror_handler_internal(r);
@@ -142,13 +145,15 @@ ngx_http_mirror_body_handler(ngx_http_request_t *r)
     ctx = ngx_http_get_module_ctx(r, ngx_http_mirror_module);
 
     ctx->status = ngx_http_mirror_handler_internal(r);
+                                                    // hankai1.1 // DECLINED
 
     r->preserve_body = 1;
 
     r->write_event_handler = ngx_http_core_run_phases;
-    ngx_http_core_run_phases(r);                // 继续走原始r的handler/hook   那么就会走到content的handler 在里面与os建链
-                                                // 注意这里是跟os建链 而非mirror的os建链
-                                                // mirror os的建链在这之后 是在ngx_http_run_posted_requests 触发core_run_phase又从头过了一遍handler 
+    ngx_http_core_run_phases(r);                    // hankai1.2 body读完
+                                                    // 继续走原始r的handler/hook   那么就会走到content的handler 在里面与os建链
+                                                    // 注意这里是跟os建链 而非mirror的os建链 // mirror os的建链在这之后 是在ngx_http_run_posted_requests 触发core_run_phase又从头过了一遍handler 
+                                                    // hankai1.5 phase都结束
 }
 
 
@@ -169,12 +174,13 @@ ngx_http_mirror_handler_internal(ngx_http_request_t *r)
                                 NGX_HTTP_SUBREQUEST_BACKGROUND)
                                 //NGX_HTTP_SUBREQUEST_IN_MEMORY | NGX_HTTP_SUBREQUEST_WAITED)
                                 //NGX_HTTP_SUBREQUEST_WAITED)
+                                                    // hankai1.1 注册sr 到post上
             != NGX_OK)
         {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
 
-        sr->header_only = 1;        // 设置只关注响应头
+        sr->header_only = 1;                        // 设置只关注响应头
         sr->method = r->method;
         sr->method_name = r->method_name;
     }

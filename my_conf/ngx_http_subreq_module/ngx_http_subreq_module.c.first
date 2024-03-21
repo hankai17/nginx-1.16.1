@@ -92,8 +92,9 @@ ngx_http_subreq_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child) {
 }
 
 static ngx_int_t
-ngx_http_subreq_subrequest_done(ngx_http_request_t *r, void *data,
-                                    ngx_int_t rc) {                             // hankai3 收到subreq源站的响应后调用 // wait subreq完成后的回调 用来处理返回结果
+ngx_http_subreq_subrequest_done(ngx_http_request_t *r,
+                                    void *data,
+                                    ngx_int_t rc) {             // wait subreq完成后的回调 用来处理返回结果
     ngx_http_subreq_ctx_t *ctx = (ngx_http_subreq_ctx_t *)data; 
     //ngx_http_subreq_loc_conf_t  *mlcf = ngx_http_get_module_loc_conf(r, ngx_http_subreq_module);
 
@@ -104,35 +105,35 @@ ngx_http_subreq_subrequest_done(ngx_http_request_t *r, void *data,
     //    return NGX_OK;
     //}
 
-    //r->parent->write_event_handler = ngx_http_core_run_phases;                  // 重置主请求的写回调
+    r->parent->write_event_handler = ngx_http_core_run_phases;  // 重置主请求的写回调
 
     return NGX_OK;
 }
 
 static ngx_int_t
-ngx_http_subreq_handler(ngx_http_request_t *r) {                                // hankai0
-                                                                                // hankai4 重入
+ngx_http_subreq_handler(ngx_http_request_t *r) {
     ngx_int_t                rc;
     ngx_http_subreq_ctx_t       *ctx;
     ngx_http_subreq_loc_conf_t  *mlcf;
 
-    if (r != r->main || r->internal) {                                          // 忽略子请求 内部请求
+    if (r != r->main || r->internal) { // 忽略子请求 内部请求
         return NGX_DECLINED;
     }
 
     mlcf = ngx_http_get_module_loc_conf(r, ngx_http_subreq_module);
-    if (mlcf->subreq_intercept.len == 0) {                                      // 获取subreq的locate
+
+    if (mlcf->subreq_intercept.len == 0) { // 获取subreq的locate
         return NGX_DECLINED;
     }
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0, "subreq handler");
 
     ctx = ngx_http_get_module_ctx(r, ngx_http_subreq_module);
-    if (ctx) {
+    if (ctx != NULL) {
         if (!ctx->done) {
             return NGX_AGAIN;
         }
-        return NGX_OK;                                                          // hankai4.1 让父phase继续跑起来
+        return NGX_DECLINED;
     }
 
     ctx = ngx_pcalloc(r->pool, sizeof(ngx_http_subreq_ctx_t));
@@ -144,7 +145,7 @@ ngx_http_subreq_handler(ngx_http_request_t *r) {                                
     ctx->done = 0;
     ngx_http_set_ctx(r, ctx, ngx_http_subreq_module);
 
-    rc = ngx_http_read_client_request_body(r, ngx_http_subreq_body_handler);    // hankai1 读取post请求
+    rc = ngx_http_read_client_request_body(r, ngx_http_subreq_body_handler); // 读取post请求
     if (rc >= NGX_HTTP_SPECIAL_RESPONSE) {
         ngx_log_error(NGX_LOG_WARN, r->connection->log, 0,
                       "err: %d",
@@ -152,13 +153,12 @@ ngx_http_subreq_handler(ngx_http_request_t *r) {                                
         return rc;
     }
 
-    //ngx_http_finalize_request(r, NGX_DONE);  
-    //r->main->count--;
-    return NGX_AGAIN;                                                           // hankai2 非常暴力直接把phase断掉了
+    r->main->count--;
+    return NGX_AGAIN;
 }
 
 static void
-ngx_http_subreq_body_handler(ngx_http_request_t *r) {                           // 读取完整个post body后
+ngx_http_subreq_body_handler(ngx_http_request_t *r) {   // 读取完整个post body后
     ngx_http_subreq_ctx_t          *ctx;
     ngx_http_post_subrequest_t *psr;
     ngx_http_subreq_loc_conf_t     *mlcf;
@@ -174,11 +174,11 @@ ngx_http_subreq_body_handler(ngx_http_request_t *r) {                           
     psr->handler = ngx_http_subreq_subrequest_done;
     psr->data = ctx;
     if (ngx_http_subrequest(r,
-            &mlcf->subreq_intercept,                                            // uri 是 subreq配置的 location // 跟 mirror一样
+            &mlcf->subreq_intercept,        // uri 是 subreq配置的 location // 跟 mirror一样
             NULL,
-            &sr,                                                                // subrequest的 r
-            psr,                                                                // 因为是waited类型的subreq 所以要有一个回调来处理返回结果
-            NGX_HTTP_SUBREQUEST_IN_MEMORY | NGX_HTTP_SUBREQUEST_WAITED)         // hankai1.1 读完整后分配sr并注册到post上
+            &sr,                            // subrequest的 r
+            psr,                            // 因为是waited类型的subreq 所以要有一个回调来处理返回结果
+            NGX_HTTP_SUBREQUEST_IN_MEMORY | NGX_HTTP_SUBREQUEST_WAITED)
         != NGX_OK) {
         return ;
     }
@@ -189,11 +189,11 @@ ngx_http_subreq_body_handler(ngx_http_request_t *r) {                           
 
     r->preserve_body = 1;
 
-#if 0
-    ngx_http_run_posted_requests(r->connection);                                // hankai1.2 手动触发post流程
+#if 1
+    ngx_http_run_posted_requests(r->connection);
 #else
-    //r->write_event_handler = ngx_http_core_run_phases;
-    //ngx_http_core_run_phases(r);                                                // hankai1.2 手动触发core_run_phase流程
+    r->write_event_handler = ngx_http_core_run_phases;
+    ngx_http_core_run_phases(r);
 #endif
 }
 
@@ -228,12 +228,13 @@ ngx_http_subreq_init(ngx_conf_t *cf) {
     ngx_http_core_main_conf_t  *cmcf;
 
     cmcf = ngx_http_conf_get_module_main_conf(cf, ngx_http_core_module);
-    //h = ngx_array_push(&cmcf->phases[NGX_HTTP_REACCESS_PHASE].handlers); // 默认checker: ngx_http_core_generic_phase 
-    h = ngx_array_push(&cmcf->phases[NGX_HTTP_ACCESS_PHASE].handlers);
+
+    h = ngx_array_push(&cmcf->phases[NGX_HTTP_PREACCESS_PHASE].handlers);
     if (h == NULL) {
         return NGX_ERROR;
     }
+
     *h = ngx_http_subreq_handler;
+
     return NGX_OK;
 }
-
