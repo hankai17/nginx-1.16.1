@@ -1094,7 +1094,7 @@ ngx_http_lua_init_by_lua_block(ngx_conf_t *cf, ngx_command_t *cmd, // init_by_lu
     cf->handler = ngx_http_lua_init_by_lua;
     cf->handler_conf = conf;
 
-    rv = ngx_http_lua_conf_lua_block_parse(cf, cmd);
+    rv = ngx_http_lua_conf_lua_block_parse(cf, cmd);    // 这个函数里会解析用户写的lua源码 并调用上面的cf->handler
 
     *cf = save;
 
@@ -1130,7 +1130,8 @@ ngx_http_lua_init_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
         return NGX_CONF_ERROR;
     }
 
-    lmcf->init_handler = (ngx_http_lua_main_conf_handler_pt) cmd->post;
+    lmcf->init_handler = (ngx_http_lua_main_conf_handler_pt) cmd->post; // eg: ngx_http_lua_init_by_inline (里面lua虚拟机加载源码)
+                                                                        // init_handler 调用时机是在postconfigure函数里 ngx_http_lua_module.c:ngx_http_lua_init
 
     if (cmd->post == ngx_http_lua_init_by_file) {
         name = ngx_http_lua_rebase_path(cf->pool, value[1].data,

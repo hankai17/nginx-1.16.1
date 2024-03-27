@@ -37,7 +37,8 @@ static ngx_connection_t  dumb;
 
 
 ngx_cycle_t *
-ngx_init_cycle(ngx_cycle_t *old_cycle)              // 起各worker之前 // reload时 // worker子进程是在main函数中最后起的
+ngx_init_cycle(ngx_cycle_t *old_cycle)              // 首次启动 或 收到reload信号后均会调用这个函数(也就是说reload命令调用后 master进程会重新解析配置文件)
+                                                    // 这个函数是在起各worker之前调用的 worker子进程是在main函数中最后起的
 {
     void                *rv;
     char               **senv;

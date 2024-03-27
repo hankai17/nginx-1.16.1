@@ -168,7 +168,7 @@ static ngx_command_t ngx_http_lua_cmds[] = {
       ngx_http_lua_init_by_lua_block,
       NGX_HTTP_MAIN_CONF_OFFSET,
       0,
-      (void *) ngx_http_lua_init_by_inline },
+      (void *) ngx_http_lua_init_by_inline },   // cmd->post
 
     { ngx_string("init_by_lua"),
       NGX_HTTP_MAIN_CONF|NGX_CONF_TAKE1,
@@ -593,7 +593,7 @@ static ngx_command_t ngx_http_lua_cmds[] = {
 
 ngx_http_module_t ngx_http_lua_module_ctx = {
     NULL,                             /*  preconfiguration */
-    ngx_http_lua_init,                /*  postconfiguration */
+    ngx_http_lua_init,                /*  postconfiguration */                  // hankai1 调用时机参考ngx_http.c 3post
 
     ngx_http_lua_create_main_conf,    /*  create main configuration */
     ngx_http_lua_init_main_conf,      /*  init main configuration */
@@ -742,7 +742,7 @@ ngx_http_lua_init(ngx_conf_t *cf)
                                   ngx_http_lua_hash_literal("content-length");
         ngx_http_lua_location_hash = ngx_http_lua_hash_literal("location");
 
-        lmcf->lua = ngx_http_lua_init_vm(NULL, cf->cycle, cf->pool, lmcf,       // 
+        lmcf->lua = ngx_http_lua_init_vm(NULL, cf->cycle, cf->pool, lmcf,       // 启动lua虚拟机
                                          cf->log, NULL);
         if (lmcf->lua == NULL) {
             ngx_conf_log_error(NGX_LOG_ERR, cf, 0,
@@ -754,7 +754,7 @@ ngx_http_lua_init(ngx_conf_t *cf)
             saved_cycle = ngx_cycle;
             ngx_cycle = cf->cycle;
 
-            rc = lmcf->init_handler(cf->log, lmcf, lmcf->lua);
+            rc = lmcf->init_handler(cf->log, lmcf, lmcf->lua);                  // 加载并执行用户在init_by_lua_block中编写的源码
 
             ngx_cycle = saved_cycle;
 
