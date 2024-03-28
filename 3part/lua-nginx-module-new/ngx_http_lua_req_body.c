@@ -55,7 +55,7 @@ ngx_http_lua_inject_req_body_api(lua_State *L)
     lua_setfield(L, -2, "set_body_file");
 
     lua_pushcfunction(L, ngx_http_lua_ngx_req_init_body);
-    lua_setfield(L, -2, "init_body");
+    lua_setfield(L, -2, "init_body");                           // 调用init_body指令之前确保lua层已初始化了一个socket (ngx_http_lua_req_socket)
 
     lua_pushcfunction(L, ngx_http_lua_ngx_req_append_body);
     lua_setfield(L, -2, "append_body");
@@ -513,7 +513,7 @@ set_header:
 
 
 static int
-ngx_http_lua_ngx_req_init_body(lua_State *L)
+ngx_http_lua_ngx_req_init_body(lua_State *L)                    // 即使lua层接管了 socket读client的底层数据 但是还是会有类似ngx源码中的save操作
 {
     ngx_http_request_t          *r;
     int                          n;
@@ -542,7 +542,7 @@ ngx_http_lua_ngx_req_init_body(lua_State *L)
         return luaL_error(L, "request body already discarded asynchronously");
     }
 
-    if (r->request_body == NULL) {
+    if (r->request_body == NULL) {                              // 确保之前已经初始化了一个socket
         return luaL_error(L, "request body not read yet");
     }
 
@@ -593,7 +593,7 @@ ngx_http_lua_ngx_req_init_body(lua_State *L)
 
     r->headers_in.content_length_n = 0;
 
-    rb->buf = ngx_create_temp_buf(r->pool, size);
+    rb->buf = ngx_create_temp_buf(r->pool, size);                       // 真正的分配r->request_body buffer     
     if (rb->buf == NULL) {
         return luaL_error(L, "no memory");
     }
@@ -611,7 +611,8 @@ ngx_http_lua_ngx_req_init_body(lua_State *L)
 
 
 static int
-ngx_http_lua_ngx_req_append_body(lua_State *L)
+ngx_http_lua_ngx_req_append_body(lua_State *L)                  // 把lua层的data(而这个data来自 ngx.socket.read到u->bufs_in里的数据) 拷贝到 r->requset_body里(可能写文件)
+                                                                // 同时 联动content-length
 {
     ngx_http_request_t          *r;
     int                          n;

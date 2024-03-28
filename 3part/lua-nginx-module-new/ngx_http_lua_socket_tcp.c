@@ -368,7 +368,7 @@ ngx_http_lua_inject_socket_tcp_api(ngx_log_t *log, lua_State *L)
 void
 ngx_http_lua_inject_req_socket_api(lua_State *L)
 {
-    lua_pushcfunction(L, ngx_http_lua_req_socket);
+    lua_pushcfunction(L, ngx_http_lua_req_socket);                      // 
     lua_setfield(L, -2, "socket");
 }
 
@@ -775,7 +775,7 @@ ngx_http_lua_socket_tcp_connect(lua_State *L)   // 在lua脚本里触发此函�
         r->write_event_handler = ngx_http_lua_content_wev_handler;
 
     } else {
-        r->write_event_handler = ngx_http_core_run_phases;
+        r->write_event_handler = ngx_http_core_run_phases;      // 如果是access阶段 进行post read 那么在读到数据后 会将原来的hook phase续上 继续走ngx引擎 (重入本模块?)
     }
 
     return lua_yield(L, 0);
@@ -1856,7 +1856,7 @@ ngx_http_lua_socket_tcp_receive(lua_State *L)
     dd("tcp receive: buf_in: %p, bufs_in: %p", u->buf_in, u->bufs_in);
 
     if (u->raw_downstream || u->body_downstream) {
-        r->read_event_handler = ngx_http_lua_req_socket_rev_handler;
+        r->read_event_handler = ngx_http_lua_req_socket_rev_handler;        // 重置r的接受回调 这个回调会让u"转"起来
     }
 
     u->read_waiting = 0;
@@ -2083,7 +2083,7 @@ ngx_http_lua_socket_tcp_read(ngx_http_request_t *r,             // 调用c->rcv 
 
         if (size || u->eof) {
 
-            rc = u->input_filter(u->input_filter_ctx, size);
+            rc = u->input_filter(u->input_filter_ctx, size);    // eg: ngx_http_lua_socket_read_until buffer处理
 
             if (rc == NGX_OK) {
 
@@ -3724,7 +3724,7 @@ ngx_http_lua_socket_receiveuntil_iterator(lua_State *L)
     }
 
     lua_rawgeti(L, lua_upvalueindex(1), SOCKET_CTX_INDEX);
-    u = lua_touserdata(L, -1);
+    u = lua_touserdata(L, -1);                                              // 获取u
     lua_pop(L, 1);
 
     if (u == NULL || u->peer.connection == NULL || u->read_closed) {
@@ -3800,7 +3800,7 @@ ngx_http_lua_socket_receiveuntil_iterator(lua_State *L)
     u->read_waiting = 0;
     u->read_co_ctx = NULL;
 
-    rc = ngx_http_lua_socket_tcp_read(r, u);
+    rc = ngx_http_lua_socket_tcp_read(r, u);                        // 上面已经设置好u的filter了 这里就开始读取数据 读到u->bufs_in
 
     if (rc == NGX_ERROR) {
         dd("read failed: %d", (int) u->ft_type);
@@ -3947,7 +3947,7 @@ ngx_http_lua_socket_compile_pattern(u_char *data, size_t len,
 
 
 static ngx_int_t
-ngx_http_lua_socket_read_until(void *data, ssize_t bytes)
+ngx_http_lua_socket_read_until(void *data, ssize_t bytes)       // 把收到的数据 处理后 拷贝到u->bufs_in里
 {
     ngx_http_lua_socket_compiled_pattern_t     *cp = data;
 
@@ -4247,7 +4247,7 @@ ngx_http_lua_req_socket(lua_State *L)
             if (rb == NULL) {
                 return luaL_error(L, "no memory");
             }
-            r->request_body = rb;
+            r->request_body = rb;                                               // 分配r->request_body 仅仅是分配 读数据的话 读到了下面u->bufs_in里
         }
 
         if (c->buffered & NGX_HTTP_LOWLEVEL_BUFFERED) {
@@ -4391,7 +4391,7 @@ ngx_http_lua_req_socket(lua_State *L)
 
     dd("setting data to %p", u);
 
-    coctx->data = u;
+    coctx->data = u;                                                        // r->协程 来驱动u
     ctx->downstream = u;
 
     if (c->read->timer_set) {

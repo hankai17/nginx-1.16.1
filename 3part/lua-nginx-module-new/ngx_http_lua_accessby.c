@@ -247,7 +247,7 @@ ngx_http_lua_access_by_chunk(lua_State *L, ngx_http_request_t *r)
     ngx_http_lua_loc_conf_t     *llcf;
 
     /*  {{{ new coroutine to handle request */
-    co = ngx_http_lua_new_thread(r, L, &co_ref);                // 分配 子co
+    co = ngx_http_lua_new_thread(r, L, &co_ref);                // 分配 子co // hankai1 可以认定为起协程
 
     if (co == NULL) {
         ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
