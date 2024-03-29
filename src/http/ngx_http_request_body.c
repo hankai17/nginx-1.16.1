@@ -140,7 +140,8 @@ ngx_http_read_client_request_body(ngx_http_request_t *r,        // 只进一次 
     } else {
         /* set rb->rest */
 
-        if (ngx_http_request_body_filter(r, NULL) != NGX_OK) {
+        if (ngx_http_request_body_filter(r, NULL) != NGX_OK) {                      // 假设是http_ppc那种 比较理想的场景 header/body是分两个事件单独吐出去的
+                                                                                    // 这里的rb->rest 就是content-length
             rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
             goto done;
         }
@@ -167,7 +168,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r,        // 只进一次 
 
     /* TODO: honor r->request_body_in_single_buf */
 
-    if (!r->headers_in.chunked && rb->rest < size) {
+    if (!r->headers_in.chunked && rb->rest < size) {                            // content-length 跟 用户配的值 取小值
         size = (ssize_t) rb->rest;
 
         if (r->request_body_in_single_buf) {
@@ -178,7 +179,7 @@ ngx_http_read_client_request_body(ngx_http_request_t *r,        // 只进一次 
         size = clcf->client_body_buffer_size;
     }
 
-    rb->buf = ngx_create_temp_buf(r->pool, size);
+    rb->buf = ngx_create_temp_buf(r->pool, size);                               // 分配rb 真正要存放post内容的内存块大小 // 这块buf没啥用 因为得反复读 buf会被覆盖
     if (rb->buf == NULL) {
         rc = NGX_HTTP_INTERNAL_SERVER_ERROR;
         goto done;

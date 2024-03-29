@@ -56,6 +56,7 @@ ngx_http_lua_inject_req_body_api(lua_State *L)
 
     lua_pushcfunction(L, ngx_http_lua_ngx_req_init_body);
     lua_setfield(L, -2, "init_body");                           // 调用init_body指令之前确保lua层已初始化了一个socket (ngx_http_lua_req_socket)
+                                                                // 然后用这个socket read到数据  数据经过filter后 再通过下面的"append_body" 把处理后的数据放到r->request_body中(可能伴随写文件)
 
     lua_pushcfunction(L, ngx_http_lua_ngx_req_append_body);
     lua_setfield(L, -2, "append_body");
@@ -148,7 +149,7 @@ ngx_http_lua_ngx_req_read_body(lua_State *L)
         coctx->cleanup = ngx_http_lua_req_body_cleanup;
         coctx->data = r;
 
-        return lua_yield(L, 0);
+        return lua_yield(L, 0);                                                         // 发生读阻塞时保存当前上下文  那么什么时候reume过来?
     }
 
     /* rc == NGX_OK */

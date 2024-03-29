@@ -1072,7 +1072,7 @@ ngx_http_core_access_phase(ngx_http_request_t *r, ngx_http_phase_handler_t *ph)
     ngx_int_t                  rc;
     ngx_http_core_loc_conf_t  *clcf;
 
-    if (r != r->main) {
+    if (r != r->main) {                                                             // 子请求不执行 access阶段 
         r->phase_handler = ph->next;
         return NGX_AGAIN;
     }
