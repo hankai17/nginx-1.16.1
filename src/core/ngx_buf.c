@@ -269,7 +269,7 @@ ngx_chain_coalesce_file(ngx_chain_t **in, off_t limit)
 
 
 ngx_chain_t *
-ngx_chain_update_sent(ngx_chain_t *in, off_t sent)
+ngx_chain_update_sent(ngx_chain_t *in, off_t sent)          // 传参sent即已发数据量 能cover到in链表的哪一个 // 但很奇怪 完全cover的buffer需要上层做清算
 {
     off_t  size;
 

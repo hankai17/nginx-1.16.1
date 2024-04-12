@@ -2120,7 +2120,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r, // 5 UPSTREAM建立PO
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http upstream send request body");
 
-    if (!r->request_body_no_buffering) { // 如果用缓冲文件 那么读整个POST文件发送之
+    if (!r->request_body_no_buffering) { // 如果用缓冲文件 那么读整个POST文件发送之 // 或发送GET请求
 
         /* buffered request body */
 

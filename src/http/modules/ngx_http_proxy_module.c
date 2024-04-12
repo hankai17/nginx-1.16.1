@@ -1152,7 +1152,9 @@ ngx_http_proxy_create_key(ngx_http_request_t *r)
 
 
 static ngx_int_t
-ngx_http_proxy_create_request(ngx_http_request_t *r)
+ngx_http_proxy_create_request(ngx_http_request_t *r)                    // 3.1 UPSTREAM 根据r构造源站的请求
+                                                                        //    把数据挂到 u->request_bufs上 (u->request_bufs = r->request_body->bufs;)
+                                                                        //    如果是post请求 ...
 {
     size_t                        len, uri_len, loc_len, body_len,
                                   key_len, val_len;
@@ -1480,7 +1482,8 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)
                    "http proxy header:%N\"%*s\"",
                    (size_t) (b->last - b->pos), b->pos);
 
-    if (r->request_body_no_buffering) {
+    if (r->request_body_no_buffering) {                                         // 如果有body则 将请求 body体挂到u->request_bufs上
+                                                                                // 如果是tunnel 则 只将请求 挂到u->request_bufs上
 
         u->request_bufs = cl;
 

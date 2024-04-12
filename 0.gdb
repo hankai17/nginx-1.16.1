@@ -2,7 +2,7 @@ set args -c /usr/local/nginx/conf/nginx.conf
 set print pretty
 
 #post
-#b ngx_http_read_client_request_body
+b ngx_http_read_client_request_body
 #b ngx_http_modsecurity_pre_access.c:119
 #b ngx_http_modsecurity_pre_access_handler
 #b ngx_http_modsecurity_request_read
@@ -22,7 +22,8 @@ set print pretty
 
 #b ngx_http_urlencode_rewrite_handler
 #b ngx_http_urlencode_preaccess_handle
-#b ngx_http_do_read_client_request_body
+b ngx_http_do_read_client_request_body
+b ngx_http_request_body_save_filter
 
 #线程池分析
 #b pthread_create
@@ -163,8 +164,15 @@ set print pretty
 #b ngx_http_auth_request_done
 
 #post client_body_buffer_size
-b pwrite
+#b pwrite
 #b ngx_http_read_client_request_body
-b ngx_http_do_read_client_request_body
-b ngx_http_write_request_body
-b ngx_http_request_body_save_filter
+#b ngx_http_do_read_client_request_body
+#b ngx_http_write_request_body
+#b ngx_http_request_body_save_filter
+
+#向os转发请求
+#b ngx_http_request_body.c:1177
+#b ngx_http_upstream_send_request_body
+#b ngx_http_upstream.c:2135
+#b ngx_http_proxy_create_request
+#b ngx_http_log_handler

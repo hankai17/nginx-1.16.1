@@ -71,19 +71,19 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 #endif
             && ngx_output_chain_as_is(ctx, in->buf))
         {
-            return ctx->output_filter(ctx->filter_ctx, in);
+            return ctx->output_filter(ctx->filter_ctx, in);                     // 比较小的get请求 一个buffer就保存了整个请求
         }
     }
 
     /* add the incoming buf to the chain ctx->in */
 
     if (in) {
-        if (ngx_output_chain_add_copy(ctx->pool, &ctx->in, in) == NGX_ERROR) { // 浅拷贝 生产新chain挂ctx->in上
+        if (ngx_output_chain_add_copy(ctx->pool, &ctx->in, in) == NGX_ERROR) {  // 浅拷贝 生产新chain挂ctx->in上
             return NGX_ERROR;
         }
     }
 
-    out = NULL;
+    out = NULL;                                                                 // out指向队列头
     last_out = &out;
     last = NGX_NONE;
 
@@ -146,7 +146,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
                 return NGX_ERROR;
             }
 
-            if (ngx_output_chain_as_is(ctx, ctx->in->buf)) {
+            if (ngx_output_chain_as_is(ctx, ctx->in->buf)) {        // 如果该(ctx->in)buffer不需要拷贝 则将其漏过去 重置ctx->in指向下一个buffer
 
                 /* move the chain link to the output chain */
 
@@ -159,7 +159,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 
                 continue;
             }
-
+            ////////////////////////////////////////////////////    //buffer在文件中
             if (ctx->buf == NULL) {
 
                 rc = ngx_output_chain_align_file_buf(ctx, bsize);
@@ -190,8 +190,10 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
                 }
             }
 
-            rc = ngx_output_chain_copy_buf(ctx); // 将ctx->in的一个chain 拷贝到ctx->b中(里面操作了原始的b使得last==pos 即代表拷贝完毕 底层的buf排空可以接受socket数据了) 
-                                                 // 当返回到ngx_http_upstream_process_non_buffered_request:ngx_http_output_filter(r, u->out_bufs);时 update_chains时 会将chain回收 即busy则为空 然后重置u->buf 开始接受新一轮数据
+            rc = ngx_output_chain_copy_buf(ctx); 
+                                                    // 从文件中拷贝数据到ctx->buf中
+                                                    // 将ctx->in的一个chain 拷贝到ctx->b中(里面操作了原始的b使得last==pos 即代表拷贝完毕 底层的buf排空可以接受socket数据了) 
+                                                    // 当返回到ngx_http_upstream_process_non_buffered_request:ngx_http_output_filter(r, u->out_bufs);时 update_chains时 会将chain回收 即busy则为空 然后重置u->buf 开始接受新一轮数据
 
             if (rc == NGX_ERROR) {
                 return rc;
@@ -520,7 +522,9 @@ ngx_output_chain_get_buf(ngx_output_chain_ctx_t *ctx, off_t bsize)
 
 
 static ngx_int_t
-ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx) // 只向ctx->b中拷贝一个chain
+ngx_output_chain_copy_buf(ngx_output_chain_ctx_t *ctx)      
+                                                            // 读取文件 到ctx->buf中 // ctx->buf用于将文件中的内容考入其内 默认拷贝8K
+                                                            // 只向ctx->buf中拷贝一个chain 
 {
     off_t        size;
     ssize_t      n;
@@ -741,7 +745,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         cl->next = NULL;
         *ctx->last = cl;
         ctx->last = &cl->next;
-    }
+    }                                                                       // ctx->out指向第一个buffer  这里的cl负责将传参的buffer 挂到ctx->out上  ctx->last指向最后一个
 
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0,
                    "chain writer in: %p", ctx->out);
@@ -795,7 +799,8 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         return NGX_OK;
     }
 
-    chain = c->send_chain(c, ctx->out, ctx->limit);
+    chain = c->send_chain(c, ctx->out, ctx->limit);         // 如果数据全发送完 则返回空 否则返回的是 未发送出去的数据处
+                                                            // 注意如果底层把一个buffer的数据发送完毕 则会将 pos指向last处
 
     ngx_log_debug1(NGX_LOG_DEBUG_CORE, c->log, 0,
                    "chain writer out: %p", chain);
@@ -804,7 +809,7 @@ ngx_chain_writer(void *data, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
-    for (cl = ctx->out; cl && cl != chain; /* void */) {
+    for (cl = ctx->out; cl && cl != chain; /* void */) {    // 清算已出的数据
         ln = cl;
         cl = cl->next;
         ngx_free_chain(ctx->pool, ln);

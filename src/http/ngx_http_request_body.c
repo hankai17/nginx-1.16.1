@@ -396,7 +396,7 @@ ngx_http_do_read_client_request_body(ngx_http_request_t *r)
         if (!c->read->ready) { // recv读到eagain 则设置ready 0
 
             if (r->request_body_no_buffering
-                && rb->buf->pos != rb->buf->last)
+                && rb->buf->pos != rb->buf->last)               // proxy_request_buffering on; request_body_no_buffering是0 // 只有当读取到整个文件后才会过body_filter
             {
                 /* pass buffer to request body filter chain */
 
@@ -867,7 +867,10 @@ ngx_http_request_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
 
 static ngx_int_t
-ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in) // 分配新chian 并把老chain清空 很诡异(pwrite确保)的用法
+ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in) 
+                                                                            // in是 r->request_body->buf 即首次根据配置文件中的大小 分配的一块空间 专门盛放post体
+                                                                            // 这里重新构造了一个buffer  用于数据备份 放到r->request_body->bufs中 在UPSTREAM 3中使用
+                                                                            // 分配新chian 并把老chain清空 很诡异(pwrite确保)的用法
                                                                             // 拷贝in中的buffer元素(深深拷贝) + 清空in中的buffer = in 的 move语义
 {
     size_t                     size;
@@ -1131,7 +1134,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     /* TODO: coalesce neighbouring buffers */
 
-    if (ngx_chain_add_copy(r->pool, &rb->bufs, in) != NGX_OK) {         // 重新构造一个一模一样的chain 且对原始chain无影响
+    if (ngx_chain_add_copy(r->pool, &rb->bufs, in) != NGX_OK) {         // 重新构造一个一模一样的chain 且对原始chain无影响 // 3 UPSTREAM 中将会使用此bufs
                                                                         // 深拷贝 共享buf指针  (注意跟深深拷贝的区别)
         return NGX_HTTP_INTERNAL_SERVER_ERROR;
     }
@@ -1143,7 +1146,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
     if (rb->rest > 0) {
 
         if (rb->buf && rb->buf->last == rb->buf->end
-            && ngx_http_write_request_body(r) != NGX_OK)
+            && ngx_http_write_request_body(r) != NGX_OK)                // 如果剩余数据>0 且当前的盛放post body体的buffer也满了 那么就会写入文件
         {
             return NGX_HTTP_INTERNAL_SERVER_ERROR;
         }
