@@ -1144,7 +1144,8 @@ ngx_http_reqstat_show_handler(ngx_http_request_t *r)
 
     cl = &out.next;
 
-    for (i = 0; i < display->nelts; i++) {
+    for (i = 0; i < display->nelts; i++) {          // 共享内存的key是 $server_real_addr,$server_addr:$server_port,$upstream_addr
+                                                    // 一般每个server块一个  所以也没有几个key
 
         ctx = shm_zone[i]->data;
 
@@ -1643,6 +1644,11 @@ ngx_http_reqstat_create_store(ngx_http_request_t *r,        // 计算key 并将�
 
     return store;
 }
+/*
+大概意思是 根据key 在共享内存中生成一份对应的空间 
+每个请求 根据这个key找到 这块共享内存空间 
+然后在log阶段 ++共享内存空间的数据
+*/
 
 
 static ngx_int_t
