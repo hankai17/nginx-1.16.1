@@ -1650,6 +1650,23 @@ ngx_http_reqstat_create_store(ngx_http_request_t *r,        // 计算key 并将�
 然后在log阶段 ++共享内存空间的数据
 */
 
+/*
+    req_status_lazy  on;
+    req_status_zone  req_server_status "$server_real_addr,$server_addr:$server_port,$upstream_addr" 5M;
+    req_status  req_server_status;
+
+    server {
+        listen 88;
+        access_log  off;
+        location /check_req_status {
+            req_status_show req_server_status;
+        }
+    }
+run 100 curl -v "http://0.0.0.0:88/check_req_status"
+127.0.0.1,127.0.0.1:81,192.168.78.4:90,15914,38805,199,199,199,0,0,0,0,395,199,332,199,199,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,332,199,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+127.0.0.1,127.0.0.1:88,,27180,130230,302,302,302,0,0,0,0,0,0,0,0,302,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0
+*/
+
 
 static ngx_int_t
 ngx_http_reqstat_check_enable(ngx_http_request_t *r,
