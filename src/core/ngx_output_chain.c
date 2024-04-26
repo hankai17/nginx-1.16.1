@@ -71,7 +71,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 #endif
             && ngx_output_chain_as_is(ctx, in->buf))
         {
-            return ctx->output_filter(ctx->filter_ctx, in);                     // 比较小的get请求 一个buffer就保存了整个请求
+            return ctx->output_filter(ctx->filter_ctx, in);                     // 比较小的get请求 一个buffer就保存了整个请求 // ngx_chain_writer
         }
     }
 

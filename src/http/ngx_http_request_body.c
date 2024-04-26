@@ -870,6 +870,7 @@ static ngx_int_t
 ngx_http_request_body_length_filter(ngx_http_request_t *r, ngx_chain_t *in) 
                                                                             // in是 r->request_body->buf 即首次根据配置文件中的大小 分配的一块空间 专门盛放post体
                                                                             // 这里重新构造了一个buffer  用于数据备份 放到r->request_body->bufs中 在UPSTREAM 3中使用
+                                                                            // 注意这里仅考虑一块buffer就读到整个post体 post体就会存放于r->request_body->bufs里 所以要求body_buffer大点 为1M
                                                                             // 分配新chian 并把老chain清空 很诡异(pwrite确保)的用法
                                                                             // 拷贝in中的buffer元素(深深拷贝) + 清空in中的buffer = in 的 move语义
 {
@@ -1177,7 +1178,7 @@ ngx_http_request_body_save_filter(ngx_http_request_t *r, ngx_chain_t *in)
             b->file_last = rb->temp_file->file.offset;
             b->file = &rb->temp_file->file;
 
-            rb->bufs = cl;
+            rb->bufs = cl;                                              // 最终文件形式的整个post体 也会存放于rb->bufs里
         }
     }
 

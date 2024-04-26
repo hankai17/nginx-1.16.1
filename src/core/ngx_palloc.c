@@ -14,6 +14,49 @@ static ngx_inline void *ngx_palloc_small(ngx_pool_t *pool, size_t size,
 static void *ngx_palloc_block(ngx_pool_t *pool, size_t size);
 static void *ngx_palloc_large(ngx_pool_t *pool, size_t size);
 
+#include <stdio.h>
+#include <stdarg.h>
+#include <time.h>
+#define OUT_FILE "/home/debug.txt"
+#define WAF_LOG_DEBUG(fmt,...)\
+do{ \
+    char cmd[512+100] = {0}; \
+    char tmp[512] = {0}; \
+    static time_t ngx_now;\
+    time(&ngx_now);\
+    struct tm * ngx_curTime;\
+    ngx_curTime = localtime(&ngx_now); \
+    snprintf(tmp, 512,"%d-%d-%d %2d:%2d:%2d   Func:%s Len:%d ------  "fmt,\
+            ngx_curTime->tm_year+1900,ngx_curTime->tm_mon+1,ngx_curTime->tm_mday, \
+            ngx_curTime->tm_hour,ngx_curTime->tm_min, ngx_curTime->tm_sec, \
+            __FUNCTION__,__LINE__ ,##__VA_ARGS__);\
+    snprintf(cmd, 512, "echo %s >> %s", tmp, OUT_FILE); \
+    system(cmd);\
+}while(0)
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <execinfo.h>
+
+#define DEBUG_MEM  0
+
+void printStackTrace() {
+    void *stackTrace[10];
+    int stackDepth = backtrace(stackTrace, 10);
+    char **symbols = backtrace_symbols(stackTrace, stackDepth);
+
+    if (symbols == NULL) {
+        perror("backtrace_symbols");
+        exit(EXIT_FAILURE);
+    }
+
+    for (int i = 0; i < stackDepth; i++) {
+        printf("%s\n", symbols[i]);
+    }
+    printf("\n");
+
+    free(symbols);
+}
 
 ngx_pool_t *
 ngx_create_pool(size_t size, ngx_log_t *log)
@@ -39,6 +82,10 @@ ngx_create_pool(size_t size, ngx_log_t *log)
     p->cleanup = NULL;
     p->log = log;
 
+#if DEBUG_MEM
+    printf("ngx_create_pool %p\n", p);
+    printStackTrace();
+#endif
     return p;
 }
 
@@ -46,6 +93,9 @@ ngx_create_pool(size_t size, ngx_log_t *log)
 void
 ngx_destroy_pool(ngx_pool_t *pool)
 {
+#if DEBUG_MEM
+    printf("ngx_destroy_pool---> %p\n", pool);
+#endif
     ngx_pool_t          *p, *n;
     ngx_pool_large_t    *l;
     ngx_pool_cleanup_t  *c;
@@ -67,11 +117,13 @@ ngx_destroy_pool(ngx_pool_t *pool)
 
     for (l = pool->large; l; l = l->next) {
         ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0, "free: %p", l->alloc);
+        //printf("free: %p\n", l->alloc);
     }
 
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
         ngx_log_debug2(NGX_LOG_DEBUG_ALLOC, pool->log, 0,
                        "free: %p, unused: %uz", p, p->d.end - p->d.last);
+        //printf("free: %p, unused: %lu\n", p, p->d.end - p->d.last);
 
         if (n == NULL) {
             break;
@@ -82,28 +134,44 @@ ngx_destroy_pool(ngx_pool_t *pool)
 
     for (l = pool->large; l; l = l->next) {
         if (l->alloc) {
+#if DEBUG_MEM
+            printf("ngx_destroy_pool free large->alloc: %p\n", l->alloc);
+#endif
             ngx_free(l->alloc);
         }
     }
 
     for (p = pool, n = pool->d.next; /* void */; p = n, n = n->d.next) {
+#if DEBUG_MEM
+        printf("ngx_destroy_pool free small pool: %p, unused: %lu\n", p, p->d.end - p->d.last);
+#endif
         ngx_free(p);
 
         if (n == NULL) {
             break;
         }
     }
+#if DEBUG_MEM
+    printStackTrace();
+    printf("ngx_destroy_pool<---\n");
+#endif
 }
 
 
 void
 ngx_reset_pool(ngx_pool_t *pool)
 {
+#if DEBUG_MEM
+    printf("ngx_reset_pool--->\n");
+#endif
     ngx_pool_t        *p;
     ngx_pool_large_t  *l;
 
     for (l = pool->large; l; l = l->next) {
         if (l->alloc) {
+#if DEBUG_MEM
+            printf("ngx_reset_pool free l->alloc: %p\n", l->alloc);
+#endif
             ngx_free(l->alloc);
         }
     }
@@ -116,6 +184,10 @@ ngx_reset_pool(ngx_pool_t *pool)
     pool->current = pool;
     pool->chain = NULL;
     pool->large = NULL;
+#if DEBUG_MEM
+    printStackTrace();
+    printf("ngx_reset_pool<---\n");
+#endif
 }
 
 
@@ -162,7 +234,9 @@ ngx_palloc_small(ngx_pool_t *pool, size_t size, ngx_uint_t align)
 
         if ((size_t) (p->d.end - m) >= size) {
             p->d.last = m + size;
-
+#if DEBUG_MEM
+            printf("ngx_palloc_small hit local, pool: %p, m: %p\n", pool, m);
+#endif
             return m;
         }
 
@@ -205,6 +279,9 @@ ngx_palloc_block(ngx_pool_t *pool, size_t size)
     }
 
     p->d.next = new;
+#if DEBUG_MEM
+    printf("ngx_palloc_block alloc small block, pool: %p, new: %p, m: %p\n", pool, new, m);
+#endif
 
     return m;
 }
@@ -227,6 +304,9 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
     for (large = pool->large; large; large = large->next) {
         if (large->alloc == NULL) {
             large->alloc = p;
+#if DEBUG_MEM
+            printf("ngx_palloc_large pool: %p, 0p: %p\n", pool, p);
+#endif
             return p;
         }
 
@@ -242,6 +322,9 @@ ngx_palloc_large(ngx_pool_t *pool, size_t size)
     }
 
     large->alloc = p;
+#if DEBUG_MEM
+    printf("ngx_palloc_large pool: %p, 1p: %p\n", pool, p);
+#endif
     large->next = pool->large;
     pool->large = large;
 
@@ -267,6 +350,9 @@ ngx_pmemalign(ngx_pool_t *pool, size_t size, size_t alignment)
     }
 
     large->alloc = p;
+#if DEBUG_MEM
+    printf("ngx_pmemalign pool: %p, larget->alloc: %p\n", pool, large->alloc);
+#endif
     large->next = pool->large;
     pool->large = large;
 
@@ -283,6 +369,9 @@ ngx_pfree(ngx_pool_t *pool, void *p)
         if (p == l->alloc) {
             ngx_log_debug1(NGX_LOG_DEBUG_ALLOC, pool->log, 0,
                            "free: %p", l->alloc);
+#if DEBUG_MEM
+            printf("ngx_pfree pool: %p, free special large p: %p\n", pool, p);
+#endif
             ngx_free(l->alloc);
             l->alloc = NULL;
 

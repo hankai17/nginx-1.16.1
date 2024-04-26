@@ -1,8 +1,9 @@
 set args -c /usr/local/nginx/conf/nginx.conf
+handle SIGPIPE noprint nopass nostop
 set print pretty
 
 #post
-b ngx_http_read_client_request_body
+#b ngx_http_read_client_request_body
 #b ngx_http_modsecurity_pre_access.c:119
 #b ngx_http_modsecurity_pre_access_handler
 #b ngx_http_modsecurity_request_read
@@ -22,8 +23,8 @@ b ngx_http_read_client_request_body
 
 #b ngx_http_urlencode_rewrite_handler
 #b ngx_http_urlencode_preaccess_handle
-b ngx_http_do_read_client_request_body
-b ngx_http_request_body_save_filter
+#b ngx_http_do_read_client_request_body
+#b ngx_http_request_body_save_filter
 
 #线程池分析
 #b pthread_create
@@ -176,3 +177,19 @@ b ngx_http_request_body_save_filter
 #b ngx_http_upstream.c:2135
 #b ngx_http_proxy_create_request
 #b ngx_http_log_handler
+
+#b ngx_http_flow_mirror_pass
+#b ngx_http_request.c:2768
+#b copy_request_bufs
+#b ngx_http_upstream.c:699
+#b ngx_http_flow_mirror_log_handler
+#b ngx_http_flow_mirror_pass_eval
+#b ngx_http_finalize_connection
+#b ngx_palloc.c:85 if l->alloc == 0x7f6a40
+#b ngx_http_close_connection
+
+#dns resolve
+#b ngx_http_proxy_handler
+#b ngx_http_upstream.c:1361
+#b ngx_http_lua_socket_connected_handler
+#b ngx_http_upstream_test_connect

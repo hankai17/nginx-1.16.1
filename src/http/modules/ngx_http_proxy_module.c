@@ -1482,7 +1482,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)                    // 3.1 U
                    "http proxy header:%N\"%*s\"",
                    (size_t) (b->last - b->pos), b->pos);
 
-    if (r->request_body_no_buffering) {                                         // 如果有body则 将请求 body体挂到u->request_bufs上
+    if (r->request_body_no_buffering) {                                         
                                                                                 // 如果是tunnel 则 只将请求 挂到u->request_bufs上
 
         u->request_bufs = cl;
@@ -1492,7 +1492,7 @@ ngx_http_proxy_create_request(ngx_http_request_t *r)                    // 3.1 U
             u->output.filter_ctx = r;
         }
 
-    } else if (plcf->body_values == NULL && plcf->upstream.pass_request_body) {
+    } else if (plcf->body_values == NULL && plcf->upstream.pass_request_body) { // 如果有body则 将请求 body体前插到u->request_bufs
 
         body = u->request_bufs;
         u->request_bufs = cl;
