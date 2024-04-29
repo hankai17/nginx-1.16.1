@@ -35,7 +35,7 @@ static void ngx_http_upstream_rd_check_broken_connection(ngx_http_request_t *r);
 static void ngx_http_upstream_wr_check_broken_connection(ngx_http_request_t *r);
 static void ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
     ngx_event_t *ev);
-static void ngx_http_upstream_connect(ngx_http_request_t *r,
+void ngx_http_upstream_connect(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static ngx_int_t ngx_http_upstream_reinit(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
@@ -43,16 +43,16 @@ static void ngx_http_upstream_send_request(ngx_http_request_t *r,
     ngx_http_upstream_t *u, ngx_uint_t do_write);
 static ngx_int_t ngx_http_upstream_send_request_body(ngx_http_request_t *r,
     ngx_http_upstream_t *u, ngx_uint_t do_write);
-static void ngx_http_upstream_send_request_handler(ngx_http_request_t *r,
+void ngx_http_upstream_send_request_handler(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static void ngx_http_upstream_read_request_handler(ngx_http_request_t *r);
-static void ngx_http_upstream_process_header(ngx_http_request_t *r,
+void ngx_http_upstream_process_header(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static ngx_int_t ngx_http_upstream_test_next(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static ngx_int_t ngx_http_upstream_intercept_errors(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
-static ngx_int_t ngx_http_upstream_test_connect(ngx_connection_t *c);
+ngx_int_t ngx_http_upstream_test_connect(ngx_connection_t *c);
 static ngx_int_t ngx_http_upstream_process_headers(ngx_http_request_t *r,
     ngx_http_upstream_t *u);
 static ngx_int_t ngx_http_upstream_process_trailers(ngx_http_request_t *r,
@@ -99,7 +99,7 @@ static void ngx_http_upstream_dummy_handler(ngx_http_request_t *r,
 static void ngx_http_upstream_next(ngx_http_request_t *r,
     ngx_http_upstream_t *u, ngx_uint_t ft_type);
 static void ngx_http_upstream_cleanup(void *data);
-static void ngx_http_upstream_finalize_request(ngx_http_request_t *r,
+void ngx_http_upstream_finalize_request(ngx_http_request_t *r,
     ngx_http_upstream_t *u, ngx_int_t rc);
 
 static ngx_int_t ngx_http_upstream_process_header_line(ngx_http_request_t *r,
@@ -545,6 +545,74 @@ ngx_http_upstream_init(ngx_http_request_t *r) // 与OS建联必须走 ngx_http_r
     ngx_http_upstream_init_request(r);
 }
 
+static ngx_int_t
+is_request_bufs_contains_file(ngx_http_request_t *r)
+{
+    ngx_chain_t         *in = NULL;
+
+    if (r->request_body && r->request_body->bufs) {
+
+        in = r->request_body->bufs;
+
+        while (in) {
+            if (in->buf && in->buf->file) {
+                return 1;
+            }
+            in = in->next;
+        }
+    }
+
+    return 0; 
+}
+
+static ngx_int_t
+copy_bufs(ngx_pool_t *pool, ngx_chain_t *in, ngx_chain_t **out)
+{
+    size_t              len = 0;
+    ngx_buf_t          *b = NULL;
+    ngx_chain_t       **ll = NULL;
+
+    ll = out;
+
+    while (in) {
+        // check 
+        len = (size_t) ngx_buf_size(in->buf);
+        if (len == 0) {
+            return 1;
+        }
+
+        if (in->buf && in->buf->file) {
+            return 1;
+        }
+
+        // alloc chain
+        ngx_chain_t *tl = ngx_alloc_chain_link(pool);
+        if (tl == NULL) {
+            return 1;
+        }
+
+        b = ngx_create_temp_buf(pool, len);
+        if (b == NULL) {
+            return 1;
+        }
+
+        tl->buf = b;
+        tl->next = NULL;
+
+        //b->tag = (ngx_buf_tag_t)&ngx_http_mirror_module;
+        b->temporary = 1;
+        b->recycled = 1;
+        b->last = ngx_copy(b->last, in->buf->pos, len);
+
+        *ll = tl;
+        ll = &tl->next;
+
+        in = in->next;
+    }
+    
+    return 0;
+}
+
 
 static void
 ngx_http_upstream_init_request(ngx_http_request_t *r) // 3 UPSTREAM 
@@ -620,11 +688,17 @@ ngx_http_upstream_init_request(ngx_http_request_t *r) // 3 UPSTREAM
 
     if (r->request_body) {
         u->request_bufs = r->request_body->bufs;                // 3 UPSTREAM 把post累积的bufs文件 赋给 request_bufs
-    }
+    }                                                           // 只是body
 
-    if (u->create_request(r) != NGX_OK) {
+    if (u->create_request(r) != NGX_OK) {                       // 3.1 UPSTREAM 构造请求头 请求体 // ngx_http_proxy_create_request
+                                                                // header + body
         ngx_http_finalize_request(r, NGX_HTTP_INTERNAL_SERVER_ERROR);
         return;
+    }
+
+    if (!is_request_bufs_contains_file(r)) {
+        // check loc conf
+        copy_bufs(r->pool, u->request_bufs, &r->out_mirror);
     }
 
     if (ngx_http_upstream_set_local(r, u, u->conf->local) != NGX_OK) { // 透明代理设置 bind特殊的客户端ip
@@ -1503,7 +1577,7 @@ ngx_http_upstream_check_broken_connection(ngx_http_request_t *r,
 }
 
 
-static void
+void
 ngx_http_upstream_connect(ngx_http_request_t *r, ngx_http_upstream_t *u) // 4 UPSTREAM 与OS建联 设置u的读写回调
 {
     ngx_int_t          rc;
@@ -2144,7 +2218,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r, // 5 UPSTREAM建立PO
         return rc;
     }
 
-                                        // nobuffering=1 即tunnel流程
+                                        // nobuffering=1 即POST 大tunnel流程
     if (!u->request_sent) {
         u->request_sent = 1;
         out = u->request_bufs;
@@ -2229,7 +2303,7 @@ ngx_http_upstream_send_request_body(ngx_http_request_t *r, // 5 UPSTREAM建立PO
 }
 
 
-static void
+void
 ngx_http_upstream_send_request_handler(ngx_http_request_t *r,
     ngx_http_upstream_t *u)
 {
@@ -2288,7 +2362,7 @@ ngx_http_upstream_read_request_handler(ngx_http_request_t *r)
 }
 
 
-static void
+void
 ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u) // 6 UPSTREAM 读到OS响应后 开始构建第二个tunnel // 1读os header
 {
     ssize_t            n;
@@ -2393,6 +2467,10 @@ ngx_http_upstream_process_header(ngx_http_request_t *r, ngx_http_upstream_t *u) 
 #endif
 
         rc = u->process_header(r);
+
+        if (rc == NGX_ABORT) {
+            return;
+        }
 
         if (rc == NGX_AGAIN) {
 
@@ -2665,7 +2743,7 @@ ngx_http_upstream_intercept_errors(ngx_http_request_t *r,
 }
 
 
-static ngx_int_t
+ngx_int_t
 ngx_http_upstream_test_connect(ngx_connection_t *c) // socket是否建联成功
 {
     int        err;
@@ -4312,7 +4390,7 @@ ngx_http_upstream_cleanup(void *data)
 }
 
 
-static void
+void
 ngx_http_upstream_finalize_request(ngx_http_request_t *r,
     ngx_http_upstream_t *u, ngx_int_t rc)
 {

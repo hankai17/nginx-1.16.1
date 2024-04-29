@@ -185,7 +185,7 @@ ngx_http_rewrite_handler(ngx_http_request_t *r)
 
 
 static ngx_int_t
-ngx_http_rewrite_var(ngx_http_request_t *r, ngx_http_variable_value_t *v,
+ngx_http_rewrite_var(ngx_http_request_t *r, ngx_http_variable_value_t *v,       // 卡了我大半天
     uintptr_t data)
 {
     ngx_http_variable_t          *var;

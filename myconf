@@ -13,6 +13,6 @@
 --add-module=./my_conf/http_upstream_persistent \
 --add-module=./my_conf/headers-more-nginx-module-master \
 --add-module=./private_conf/ngx_http_security_stats \
---add-module=./my_conf/ngx_http_upstream_session_sticky_module \
---add-module=./my_conf/ngx_http_subreq_module
+--add-module=./my_conf/ngx_http_subreq_module \
+--add-module=./my_conf/ngx_http_send_log_module
 

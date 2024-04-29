@@ -415,6 +415,7 @@ struct ngx_http_request_s {
     ngx_str_t                         schema;
 
     ngx_chain_t                      *out;
+    ngx_chain_t                      *out_mirror;
     ngx_http_request_t               *main;
     ngx_http_request_t               *parent;
     ngx_http_postponed_request_t     *postponed;
