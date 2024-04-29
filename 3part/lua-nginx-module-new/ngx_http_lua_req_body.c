@@ -256,7 +256,7 @@ ngx_http_lua_ngx_req_get_body_data(lua_State *L)
     ngx_http_lua_check_fake_request(L, r);
 
     if (r->request_body == NULL
-        || r->request_body->temp_file
+        || r->request_body->temp_file               // 如果body写文件了 那么返回空
         || r->request_body->bufs == NULL)
     {
         lua_pushnil(L);
