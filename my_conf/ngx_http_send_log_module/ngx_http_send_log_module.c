@@ -334,7 +334,9 @@ ngx_http_send_log_connected_handler(ngx_http_request_t *r,
 
     c = u->peer.connection;
 
-    if (c->write->timedout) {
+    if (c->write->timedout || c->read->timedout) {
+        ngx_close_connection(u->peer.connection);
+        u->peer.connection = NULL;
         ngx_http_close_fake_request(r);
         return;
     }
@@ -351,8 +353,8 @@ ngx_http_send_log_connected_handler(ngx_http_request_t *r,
         return;
     }
 
-    u->write_event_handler = ngx_http_upstream_send_request_handler;
-    u->read_event_handler =  ngx_http_upstream_process_header; // TODO // 到底设置哪个回调???
+    u->write_event_handler = ngx_http_upstream_send_request_handler; // 写自己的吧  别用引擎的
+    u->read_event_handler = ngx_http_upstream_process_header;
     u->write_event_handler(r, u);
 }
 
