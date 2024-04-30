@@ -1,0 +1,127 @@
+==2600251== Memcheck, a memory error detector
+==2600251== Copyright (C) 2002-2022, and GNU GPL'd, by Julian Seward et al.
+==2600251== Using Valgrind-3.19.0 and LibVEX; rerun with -h for copyright info
+==2600251== Command: ./nginx -c /usr/local/nginx/conf/nginx.conf
+==2600251== Parent PID: 693884
+==2600251== 
+==2600251== 
+==2600251== HEAP SUMMARY:
+==2600251==     in use at exit: 57,617,002 bytes in 100,146 blocks
+==2600251==   total heap usage: 1,104,276 allocs, 1,004,130 frees, 1,814,856,867 bytes allocated
+==2600251== 
+==2600251== 8 bytes in 1 blocks are definitely lost in loss record 1 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451297: ngx_alloc (ngx_alloc.c:22)
+==2600251==    by 0x414131: ngx_set_environment (nginx.c:581)
+==2600251==    by 0x457838: ngx_single_process_cycle (ngx_process_cycle.c:299)
+==2600251==    by 0x413BC2: main (nginx.c:379)
+==2600251== 
+==2600251== 32 bytes in 1 blocks are still reachable in loss record 2 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451297: ngx_alloc (ngx_alloc.c:22)
+==2600251==    by 0x414B60: ngx_save_argv (nginx.c:885)
+==2600251==    by 0x4137D8: main (nginx.c:257)
+==2600251== 
+==2600251== 44 bytes in 3 blocks are still reachable in loss record 3 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451297: ngx_alloc (ngx_alloc.c:22)
+==2600251==    by 0x414BDC: ngx_save_argv (nginx.c:893)
+==2600251==    by 0x4137D8: main (nginx.c:257)
+==2600251== 
+==2600251== 2,160 bytes in 1 blocks are still reachable in loss record 4 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451176: ngx_strerror_init (ngx_errno.c:60)
+==2600251==    by 0x4136A3: main (nginx.c:206)
+==2600251== 
+==2600251== 3,030 bytes in 135 blocks are still reachable in loss record 5 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x4511C3: ngx_strerror_init (ngx_errno.c:69)
+==2600251==    by 0x4136A3: main (nginx.c:206)
+==2600251== 
+==2600251== 4,096 bytes in 32 blocks are possibly lost in loss record 6 of 13
+==2600251==    at 0x4C3C1EF: memalign (vg_replace_malloc.c:1516)
+==2600251==    by 0x4C3C318: posix_memalign (vg_replace_malloc.c:1688)
+==2600251==    by 0x45138E: ngx_memalign (ngx_alloc.c:57)
+==2600251==    by 0x41782C: ngx_create_pool (ngx_palloc.c:66)
+==2600251==    by 0x498E5B: ngx_http_upstream_connect (ngx_http_upstream.c:1656)
+==2600251==    by 0x53CF58: ngx_http_send_log_handler (ngx_http_send_log_module.c:537)
+==2600251==    by 0x4832D8: ngx_http_log_request (ngx_http_request.c:3716)
+==2600251==    by 0x483142: ngx_http_free_request (ngx_http_request.c:3662)
+==2600251==    by 0x482FE9: ngx_http_close_request (ngx_http_request.c:3608)
+==2600251==    by 0x48139D: ngx_http_finalize_connection (ngx_http_request.c:2776)
+==2600251==    by 0x480EF2: ngx_http_finalize_request (ngx_http_request.c:2651)
+==2600251==    by 0x49F7E1: ngx_http_upstream_finalize_request (ngx_http_upstream.c:4561)
+==2600251== 
+==2600251== 5,584 bytes in 1 blocks are still reachable in loss record 7 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451297: ngx_alloc (ngx_alloc.c:22)
+==2600251==    by 0x456644: ngx_init_setproctitle (ngx_setproctitle.c:47)
+==2600251==    by 0x456920: ngx_os_init (ngx_posix_init.c:49)
+==2600251==    by 0x413811: main (nginx.c:265)
+==2600251== 
+==2600251== 6,144 bytes in 1 blocks are still reachable in loss record 8 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451297: ngx_alloc (ngx_alloc.c:22)
+==2600251==    by 0x45A5BA: ngx_epoll_init (ngx_epoll_module.c:359)
+==2600251==    by 0x44996C: ngx_event_process_init (ngx_event.c:667)
+==2600251==    by 0x457899: ngx_single_process_cycle (ngx_process_cycle.c:306)
+==2600251==    by 0x413BC2: main (nginx.c:379)
+==2600251== 
+==2600251== 3,416,576 bytes in 26,692 blocks are indirectly lost in loss record 9 of 13
+==2600251==    at 0x4C3C1EF: memalign (vg_replace_malloc.c:1516)
+==2600251==    by 0x4C3C318: posix_memalign (vg_replace_malloc.c:1688)
+==2600251==    by 0x45138E: ngx_memalign (ngx_alloc.c:57)
+==2600251==    by 0x41782C: ngx_create_pool (ngx_palloc.c:66)
+==2600251==    by 0x498E5B: ngx_http_upstream_connect (ngx_http_upstream.c:1656)
+==2600251==    by 0x53CF58: ngx_http_send_log_handler (ngx_http_send_log_module.c:537)
+==2600251==    by 0x4832D8: ngx_http_log_request (ngx_http_request.c:3716)
+==2600251==    by 0x483142: ngx_http_free_request (ngx_http_request.c:3662)
+==2600251==    by 0x482FE9: ngx_http_close_request (ngx_http_request.c:3608)
+==2600251==    by 0x48139D: ngx_http_finalize_connection (ngx_http_request.c:2776)
+==2600251==    by 0x480EF2: ngx_http_finalize_request (ngx_http_request.c:2651)
+==2600251==    by 0x49F7E1: ngx_http_upstream_finalize_request (ngx_http_upstream.c:4561)
+==2600251== 
+==2600251== 9,600,000 bytes in 1 blocks are possibly lost in loss record 10 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451297: ngx_alloc (ngx_alloc.c:22)
+==2600251==    by 0x449D03: ngx_event_process_init (ngx_event.c:739)
+==2600251==    by 0x457899: ngx_single_process_cycle (ngx_process_cycle.c:306)
+==2600251==    by 0x413BC2: main (nginx.c:379)
+==2600251== 
+==2600251== 9,600,000 bytes in 1 blocks are possibly lost in loss record 11 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451297: ngx_alloc (ngx_alloc.c:22)
+==2600251==    by 0x449DE3: ngx_event_process_init (ngx_event.c:751)
+==2600251==    by 0x457899: ngx_single_process_cycle (ngx_process_cycle.c:306)
+==2600251==    by 0x413BC2: main (nginx.c:379)
+==2600251== 
+==2600251== 12,795,904 (9,379,328 direct, 3,416,576 indirect) bytes in 73,276 blocks are definitely lost in loss record 12 of 13
+==2600251==    at 0x4C3C1EF: memalign (vg_replace_malloc.c:1516)
+==2600251==    by 0x4C3C318: posix_memalign (vg_replace_malloc.c:1688)
+==2600251==    by 0x45138E: ngx_memalign (ngx_alloc.c:57)
+==2600251==    by 0x41782C: ngx_create_pool (ngx_palloc.c:66)
+==2600251==    by 0x498E5B: ngx_http_upstream_connect (ngx_http_upstream.c:1656)
+==2600251==    by 0x53CF58: ngx_http_send_log_handler (ngx_http_send_log_module.c:537)
+==2600251==    by 0x4832D8: ngx_http_log_request (ngx_http_request.c:3716)
+==2600251==    by 0x483142: ngx_http_free_request (ngx_http_request.c:3662)
+==2600251==    by 0x482FE9: ngx_http_close_request (ngx_http_request.c:3608)
+==2600251==    by 0x48139D: ngx_http_finalize_connection (ngx_http_request.c:2776)
+==2600251==    by 0x480EF2: ngx_http_finalize_request (ngx_http_request.c:2651)
+==2600251==    by 0x49F7E1: ngx_http_upstream_finalize_request (ngx_http_upstream.c:4561)
+==2600251== 
+==2600251== 25,600,000 bytes in 1 blocks are possibly lost in loss record 13 of 13
+==2600251==    at 0x4C37135: malloc (vg_replace_malloc.c:381)
+==2600251==    by 0x451297: ngx_alloc (ngx_alloc.c:22)
+==2600251==    by 0x449C90: ngx_event_process_init (ngx_event.c:732)
+==2600251==    by 0x457899: ngx_single_process_cycle (ngx_process_cycle.c:306)
+==2600251==    by 0x413BC2: main (nginx.c:379)
+==2600251== 
+==2600251== LEAK SUMMARY:
+==2600251==    definitely lost: 9,379,336 bytes in 73,277 blocks
+==2600251==    indirectly lost: 3,416,576 bytes in 26,692 blocks
+==2600251==      possibly lost: 44,804,096 bytes in 35 blocks
+==2600251==    still reachable: 16,994 bytes in 142 blocks
+==2600251==         suppressed: 0 bytes in 0 blocks
+==2600251== 
+==2600251== For lists of detected and suppressed errors, rerun with: -s
+==2600251== ERROR SUMMARY: 6 errors from 6 contexts (suppressed: 0 from 0)
