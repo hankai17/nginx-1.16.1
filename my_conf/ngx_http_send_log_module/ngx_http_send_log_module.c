@@ -325,6 +325,45 @@ ngx_http_send_log_merge_loc_conf(ngx_conf_t *cf, void *parent, void *child)
     return NGX_CONF_OK;
 }
 
+static
+void write_data(ngx_http_request_t *r, ngx_http_upstream_t *u)
+{
+    ngx_int_t                  rc;
+    ngx_chain_t               *out; //, *cl, *ln;
+
+    //c = u->peer.connection;
+
+    u->request_sent = 1;
+    out = u->request_bufs;
+
+    rc = ngx_output_chain(&u->output, out);
+    if (rc == NGX_AGAIN) {
+        u->request_body_blocked = 1;
+
+    } else {
+        u->request_body_blocked = 0;
+    }
+
+    /*
+    if (rc == NGX_ERROR) {
+        ngx_close_connection(u->peer.connection); // osvc的pool 需要释放
+        u->peer.connection = NULL;
+        ngx_http_close_fake_request(r);
+        return;
+    }
+
+    if (rc == NGX_AGAIN) {
+        // TODO
+        ngx_close_connection(u->peer.connection);
+        u->peer.connection = NULL;
+        ngx_http_close_fake_request(r);
+        return;
+    }
+    */
+    ngx_http_stop_request(r);
+    return;
+}
+
 static void
 ngx_http_send_log_connected_handler(ngx_http_request_t *r,
     ngx_http_upstream_t *u)
@@ -353,7 +392,15 @@ ngx_http_send_log_connected_handler(ngx_http_request_t *r,
         return;
     }
 
-    u->write_event_handler = ngx_http_upstream_send_request_handler; // 写自己的吧  别用引擎的
+    // 一旦自定义了free函数: ngx_http_free_fake_request ngx_http_close_fake_connection
+    // 那么下面的引擎的read/write_event_handler 均是不可信的调用
+    // 因为引擎处理了很多东西 
+    
+    if (1) {
+        u->write_event_handler = write_data;
+    } else {
+        u->write_event_handler =  ngx_http_upstream_send_request_handler; //write_data; // 写自己的吧  别用引擎的
+    }
     u->read_event_handler = ngx_http_upstream_process_header;
     u->write_event_handler(r, u);
 }
@@ -622,7 +669,7 @@ ngx_int_t ngx_http_stop_request(ngx_http_request_t *r)
     u = r->upstream;
 
     if (u->peer.sockaddr) {
-        u->peer.free(&u->peer, u->peer.data, 0); 
+        u->peer.free(&u->peer, u->peer.data, 0);
         u->peer.sockaddr = NULL;
     }
     // if keepalive, the connection has been set to null by u->peer.free
