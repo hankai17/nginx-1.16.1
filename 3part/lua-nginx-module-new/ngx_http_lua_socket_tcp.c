@@ -2695,7 +2695,7 @@ ngx_http_lua_socket_tcp_setoption(lua_State *L)
 
 
 static int
-ngx_http_lua_socket_tcp_settimeout(lua_State *L)	// 把timeout值赋到u中 
+ngx_http_lua_socket_tcp_settimeout(lua_State *L)	        // 把timeout值赋到u中 
 {
     int                     n;
     ngx_int_t               timeout;
@@ -2721,7 +2721,7 @@ ngx_http_lua_socket_tcp_settimeout(lua_State *L)	// 把timeout值赋到u中
     u = lua_touserdata(L, -1);
 
     if (u) {
-        if (timeout > 0) {
+        if (timeout > 0) {                                  // time三合一 毫秒
             u->read_timeout = (ngx_msec_t) timeout;
             u->send_timeout = (ngx_msec_t) timeout;
             u->connect_timeout = (ngx_msec_t) timeout;
@@ -2738,7 +2738,7 @@ ngx_http_lua_socket_tcp_settimeout(lua_State *L)	// 把timeout值赋到u中
 
 
 static int
-ngx_http_lua_socket_tcp_settimeouts(lua_State *L)
+ngx_http_lua_socket_tcp_settimeouts(lua_State *L)           // 分别设置timeout三剑客 毫秒
 {
     int                     n;
     ngx_int_t               connect_timeout, send_timeout, read_timeout;
