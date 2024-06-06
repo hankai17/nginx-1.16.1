@@ -1699,7 +1699,7 @@ ngx_http_file_cache_cleanup(void *data)
 
 
 static time_t
-ngx_http_file_cache_forced_expire(ngx_http_file_cache_t *cache)
+ngx_http_file_cache_forced_expire(ngx_http_file_cache_t *cache)             // 缓存目录使用率超过watermark(7/8) 则强制删除部分缓存以释放磁盘空间
 {
     u_char                      *name, *p;
     size_t                       len;
@@ -1747,8 +1747,8 @@ ngx_http_file_cache_forced_expire(ngx_http_file_cache_t *cache)
                   fcn->count, fcn->exists,
                   fcn->key[0], fcn->key[1], fcn->key[2], fcn->key[3]);
 
-        if (fcn->count == 0) {
-            ngx_http_file_cache_delete(cache, q, name);
+        if (fcn->count == 0) {                                              // 未被使用
+            ngx_http_file_cache_delete(cache, q, name);                     // 无论是否过期 强制删除
             wait = 0;
             break;
         }
@@ -1904,7 +1904,9 @@ next:
 
 
 static void
-ngx_http_file_cache_delete(ngx_http_file_cache_t *cache, ngx_queue_t *q,
+                                                                                // 调用时机是:
+                                                                                //     从LRU链表尾部开始遍历 如果有对应缓存文件的已经过期(自上次最近使用时间已经超过inactive时间)
+ngx_http_file_cache_delete(ngx_http_file_cache_t *cache, ngx_queue_t *q,        // 把缓存文件的meta信息 LRU/rbtree node等 从共享内存区域删除
     u_char *name)
 {
     u_char                      *p;
@@ -1935,7 +1937,7 @@ ngx_http_file_cache_delete(ngx_http_file_cache_t *cache, ngx_queue_t *q,
         ngx_log_debug1(NGX_LOG_DEBUG_HTTP, ngx_cycle->log, 0,
                        "http file cache expire: \"%s\"", name);
 
-        if (ngx_delete_file(name) == NGX_FILE_ERROR) {
+        if (ngx_delete_file(name) == NGX_FILE_ERROR) {                          // 从磁盘上删除
             ngx_log_error(NGX_LOG_CRIT, ngx_cycle->log, ngx_errno,
                           ngx_delete_file_n " \"%s\" failed", name);
         }
@@ -2083,14 +2085,14 @@ ngx_http_file_cache_noop(ngx_tree_ctx_t *ctx, ngx_str_t *path)
 
 
 static ngx_int_t
-ngx_http_file_cache_manage_file(ngx_tree_ctx_t *ctx, ngx_str_t *path)
+ngx_http_file_cache_manage_file(ngx_tree_ctx_t *ctx, ngx_str_t *path)           // load时 每个文件均调用一次该函数?
 {
     ngx_msec_t              elapsed;
     ngx_http_file_cache_t  *cache;
 
     cache = ctx->data;
 
-    if (ngx_http_file_cache_add_file(ctx, path) != NGX_OK) {
+    if (ngx_http_file_cache_add_file(ctx, path) != NGX_OK) {                    // 将文件元信息写入 共享内存
         (void) ngx_http_file_cache_delete_file(ctx, path);
     }
 
@@ -2189,7 +2191,7 @@ ngx_http_file_cache_add_file(ngx_tree_ctx_t *ctx, ngx_str_t *name)
         c.key[i] = (u_char) n;
     }
 
-    return ngx_http_file_cache_add(cache, &c);
+    return ngx_http_file_cache_add(cache, &c);                              // 将文件元信息 写入共享内存
 }
 
 
@@ -2205,7 +2207,7 @@ ngx_http_file_cache_add(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
     if (fcn == NULL) {
 
         fcn = ngx_slab_calloc_locked(cache->shpool,
-                                     sizeof(ngx_http_file_cache_node_t));
+                                     sizeof(ngx_http_file_cache_node_t));   // 分配元信息红黑树节点
         if (fcn == NULL) {
             ngx_http_file_cache_set_watermark(cache);
 
@@ -2238,7 +2240,7 @@ ngx_http_file_cache_add(ngx_http_file_cache_t *cache, ngx_http_cache_t *c)
         ngx_queue_remove(&fcn->queue);
     }
 
-    fcn->expire = ngx_time() + cache->inactive;
+    fcn->expire = ngx_time() + cache->inactive;                             // 更新inactive?
 
     ngx_queue_insert_head(&cache->sh->queue, &fcn->queue);
 
@@ -2696,3 +2698,5 @@ ngx_http_file_cache_valid_set_slot(ngx_conf_t *cf, ngx_command_t *cmd,
 
     return NGX_CONF_OK;
 }
+
+// https://www.nginx.org.cn/article/detail/406

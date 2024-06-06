@@ -917,7 +917,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
             return NGX_ERROR;
         }
 
-        if (u->create_key(r) != NGX_OK) {
+        if (u->create_key(r) != NGX_OK) {               // ngx_http_proxy_create_key
             return NGX_ERROR;
         }
 

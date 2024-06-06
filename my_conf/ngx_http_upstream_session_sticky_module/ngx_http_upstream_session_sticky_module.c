@@ -1467,3 +1467,5 @@ ngx_http_upstream_session_sticky_save_peer_session(ngx_peer_connection_t *pc,
 }
 
 #endif
+
+// session_sticky  cookie=KLBRSID mode=insert option=indirect maxidle=3600;
