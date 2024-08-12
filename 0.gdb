@@ -193,3 +193,5 @@ set print pretty
 #b ngx_http_upstream.c:1361
 #b ngx_http_lua_socket_connected_handler
 #b ngx_http_upstream_test_connect
+
+b ngx_http_cache_purge_handler

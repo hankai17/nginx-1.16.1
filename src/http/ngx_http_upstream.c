@@ -615,7 +615,7 @@ copy_bufs(ngx_pool_t *pool, ngx_chain_t *in, ngx_chain_t **out)
 
 
 static void
-ngx_http_upstream_init_request(ngx_http_request_t *r) // 3 UPSTREAM 
+ngx_http_upstream_init_request(ngx_http_request_t *r)   // 3 UPSTREAM 
 {
     ngx_str_t                      *host;
     ngx_uint_t                      i;
@@ -637,7 +637,7 @@ ngx_http_upstream_init_request(ngx_http_request_t *r) // 3 UPSTREAM
     if (u->conf->cache) {
         ngx_int_t  rc;
 
-        rc = ngx_http_upstream_cache(r, u);
+        rc = ngx_http_upstream_cache(r, u);             // 1 CACHE
 
         if (rc == NGX_BUSY) {
             r->write_event_handler = ngx_http_upstream_init_request;
@@ -917,7 +917,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
             return NGX_ERROR;
         }
 
-        if (u->create_key(r) != NGX_OK) {               // ngx_http_proxy_create_key
+        if (u->create_key(r) != NGX_OK) {               // 1 CACHE 创建key // ngx_http_proxy_create_key
             return NGX_ERROR;
         }
 
@@ -944,7 +944,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
         c->min_uses = u->conf->cache_min_uses;
         c->file_cache = cache;
 
-        switch (ngx_http_test_predicates(r, u->conf->cache_bypass)) {
+        switch (ngx_http_test_predicates(r, u->conf->cache_bypass)) {   // 1 CACHE 根据配置判断是否过CACHE
 
         case NGX_ERROR:
             return NGX_ERROR;
@@ -964,7 +964,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
         u->cache_status = NGX_HTTP_CACHE_MISS;
     }
 
-    rc = ngx_http_file_cache_open(r);
+    rc = ngx_http_file_cache_open(r);                   // 1 CACHE 查找是否命中磁盘
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "http upstream cache: %i", rc);
@@ -984,7 +984,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
         break;
 
-    case NGX_HTTP_CACHE_UPDATING:
+    case NGX_HTTP_CACHE_UPDATING:                       // 1 CACHE 缓存过期了 但已有请求正请求新的数据
 
         if (((u->conf->cache_use_stale & NGX_HTTP_UPSTREAM_FT_UPDATING)
              || c->stale_updating) && !r->background)
@@ -1031,7 +1031,7 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
         break;
 
-    case NGX_HTTP_CACHE_SCARCE:
+    case NGX_HTTP_CACHE_SCARCE:                         // 1 CACHE 未达到阈值
 
         u->cacheable = 0;
 
@@ -1062,6 +1062,8 @@ ngx_http_upstream_cache(ngx_http_request_t *r, ngx_http_upstream_t *u)
 
     return NGX_DECLINED;
 }
+
+// https://www.nginx.org.cn/article/detail/406
 
 
 static ngx_int_t
@@ -3045,7 +3047,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)  
 
 #if (NGX_HTTP_CACHE)
 
-        if (r->cache) {
+        if (r->cache) { // 理想型tunnel不提供cache功能
             ngx_http_file_cache_free(r->cache, u->pipe->temp_file);
         }
 
@@ -3085,7 +3087,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)  
                 return;
             }
 
-            ngx_http_upstream_process_non_buffered_downstream(r); // 最总调ngx_http_upstream_process_non_buffered_request(r, 1<doWrite>);
+            ngx_http_upstream_process_non_buffered_downstream(r);       // 最终调ngx_http_upstream_process_non_buffered_request(r, 1<doWrite>);
 
         } else {
             u->buffer.pos = u->buffer.start;
@@ -3097,14 +3099,15 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)  
             }
 
             if (u->peer.connection->read->ready || u->length == 0) {
-                ngx_http_upstream_process_non_buffered_upstream(r, u); // ngx_http_upstream_process_non_buffered_request(r, 0);
+                ngx_http_upstream_process_non_buffered_upstream(r, u);  // ngx_http_upstream_process_non_buffered_request(r, 0);
             }
         }
 
         return;
     }
 
-    // ngx特有得pipe型tunnel
+    // ngx特有得pipe型tunnel (buffering开启) 
+    // 为什么是特有的 因为可能写文件 还有可能提供cache服务
     /* TODO: preallocate event_pipe bufs, look "Content-Length" */
 
 #if (NGX_HTTP_CACHE)
@@ -3114,7 +3117,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)  
         r->cache->file.fd = NGX_INVALID_FILE;
     }
 
-    switch (ngx_http_test_predicates(r, u->conf->no_cache)) {
+    switch (ngx_http_test_predicates(r, u->conf->no_cache)) {           // 是否满足生成缓存文件
 
     case NGX_ERROR:
         ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
@@ -3144,10 +3147,10 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)  
 
         now = ngx_time();
 
-        valid = r->cache->valid_sec;
+        valid = r->cache->valid_sec;                                    // 响应头部中的X-Accel-Expires Cache-Control 或者Expires头部信息来获得
 
         if (valid == 0) {
-            valid = ngx_http_file_cache_valid(u->conf->cache_valid,
+            valid = ngx_http_file_cache_valid(u->conf->cache_valid,     // 如果响应头中没有以上有关时间的header那么 取配置中proxy_cache_valid设置的强缓时长
                                               u->headers_in.status_n);
             if (valid) {
                 r->cache->valid_sec = now + valid;
@@ -3175,7 +3178,7 @@ ngx_http_upstream_send_response(ngx_http_request_t *r, ngx_http_upstream_t *u)  
                 ngx_str_null(&r->cache->etag);
             }
 
-            if (ngx_http_file_cache_set_header(r, u->buffer.start) != NGX_OK) {
+            if (ngx_http_file_cache_set_header(r, u->buffer.start) != NGX_OK) {     // 初始化cache_header信息 
                 ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
                 return;
             }
@@ -4014,13 +4017,13 @@ ngx_http_upstream_process_upstream(ngx_http_request_t *r, // upstream的读回�
             return;
         }
 
-        if (ngx_event_pipe(p, 0) == NGX_ABORT) {
+        if (ngx_event_pipe(p, 0) == NGX_ABORT) {                        // nginx特有的pipe tunnel模型
             ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
             return;
         }
     }
 
-    ngx_http_upstream_process_request(r, u);
+    ngx_http_upstream_process_request(r, u);                            // 把临时文件重命名为 正式的缓存文件
 }
 
 

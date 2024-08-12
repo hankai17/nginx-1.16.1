@@ -1168,12 +1168,12 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
                     ctx->cur_co_ctx = next_coctx;
 
                     break;
-                }
+                }       // Yeild 以及 yield 的具体原因
 
                 /* try resuming on the new coroutine again */
                 continue;
 
-            case 0:
+            case 0:     // 某协程运行完毕
 
                 ngx_http_lua_cleanup_pending_operation(ctx->cur_co_ctx);
 
@@ -1189,7 +1189,7 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
                 ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                                "lua light thread ended normally");
 
-                if (ngx_http_lua_is_entry_thread(ctx)) {
+                if (ngx_http_lua_is_entry_thread(ctx)) {        // 普通协程
 
                     lua_settop(L, 0);
 
@@ -1207,7 +1207,7 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
                     goto done;
                 }
 
-                if (ctx->cur_co_ctx->is_uthread) {
+                if (ctx->cur_co_ctx->is_uthread) {              // 协程起的线程
                     /* being a user thread */
 
                     lua_settop(L, 0);
@@ -1215,7 +1215,7 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
                     parent_coctx = ctx->cur_co_ctx->parent_co_ctx;
 
                     if (ngx_http_lua_coroutine_alive(parent_coctx)) {
-                        if (ctx->cur_co_ctx->waited_by_parent) {
+                        if (ctx->cur_co_ctx->waited_by_parent) {                    // 父协程已经调用过wait了
                             ngx_http_lua_probe_info("parent already waiting");
                             ctx->cur_co_ctx->waited_by_parent = 0;
                             success = 1;
@@ -1234,9 +1234,9 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
                         lua_pushboolean(ctx->cur_co_ctx->co, 1);
                         lua_insert(ctx->cur_co_ctx->co, 1);
 
-                        ctx->cur_co_ctx->co_status = NGX_HTTP_LUA_CO_ZOMBIE;
+                        ctx->cur_co_ctx->co_status = NGX_HTTP_LUA_CO_ZOMBIE;        // 标记为僵尸 等待回收
                         ctx->cur_co_ctx = NULL;
-                        return NGX_AGAIN;
+                        return NGX_AGAIN;                                           // 为何返回了?
                     }
 
                     ngx_http_lua_del_thread(r, L, ctx, ctx->cur_co_ctx);
@@ -1261,11 +1261,11 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
 
                 success = 1;
 
-user_co_done:
+user_co_done:   // 切到父协程
 
                 nrets = lua_gettop(ctx->cur_co_ctx->co);
 
-                next_coctx = ctx->cur_co_ctx->parent_co_ctx;
+                next_coctx = ctx->cur_co_ctx->parent_co_ctx;            // 启了threads后 非对称协程调度的源头 即先调度回父协程
 
                 if (next_coctx == NULL) {
                     /* being a light thread */
@@ -1345,7 +1345,7 @@ user_co_done:
                                           ctx->cur_co_ctx);
             trace = lua_tostring(L, -1);
 
-            if (ctx->cur_co_ctx->is_uthread) {
+            if (ctx->cur_co_ctx->is_uthread) {                          // 协程上起的线程
 
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                               "lua user thread aborted: %s: %s\n%s",
@@ -1395,7 +1395,7 @@ user_co_done:
                 return NGX_AGAIN;
             }
 
-            if (ngx_http_lua_is_entry_thread(ctx)) {
+            if (ngx_http_lua_is_entry_thread(ctx)) {                    // entry_thread 即 纯/一般的协程
                 ngx_log_error(NGX_LOG_ERR, r->connection->log, 0,
                               "lua entry thread aborted: %s: %s\n%s",
                               err, msg, trace);

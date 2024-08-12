@@ -28,7 +28,8 @@ static void ngx_http_upstream_empty_save_session(ngx_peer_connection_t *pc,
 
 
 ngx_int_t
-ngx_http_upstream_init_round_robin(ngx_conf_t *cf, // 调用时机是init main configuration(参考ngx_http.c:263)中 ngx_http_upstream_init_main_conf // 即如果没有自定义的peer_init_stream则调用此
+ngx_http_upstream_init_round_robin(ngx_conf_t *cf, // 调用时机是init main configuration(参考ngx_http.c:263)中 ngx_http_upstream_init_main_conf // 即如果没有自定义的peer_init_stream则调用此(modules/ngx_http_upstream_keepalive_module.c:155 original_init_upstream)
+                                                                                                                                                // 如果有自定义的eg: keepalive 其实其也会调用此rr
     ngx_http_upstream_srv_conf_t *us)
 {
     ngx_url_t                      u;

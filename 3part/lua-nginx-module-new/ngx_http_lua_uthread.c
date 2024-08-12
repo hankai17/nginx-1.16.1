@@ -154,7 +154,7 @@ ngx_http_lua_uthread_wait(lua_State *L)
         }
 
         switch (sub_coctx->co_status) {
-        case NGX_HTTP_LUA_CO_ZOMBIE:
+        case NGX_HTTP_LUA_CO_ZOMBIE:                                    // 协程上的线程 运行结束
 
             ngx_http_lua_probe_info("found zombie child");
 
@@ -194,9 +194,8 @@ ngx_http_lua_uthread_wait(lua_State *L)
                sub_coctx->co_status, coctx);
             break;
         }
-
         ngx_http_lua_probe_user_thread_wait(L, sub_coctx->co);
-        sub_coctx->waited_by_parent = 1;
+        sub_coctx->waited_by_parent = 1;                                    // 协程上的线程 "阻塞" 了
     }
 
     return lua_yield(L, 0);

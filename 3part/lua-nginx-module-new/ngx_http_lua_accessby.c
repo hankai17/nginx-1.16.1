@@ -265,7 +265,7 @@ ngx_http_lua_access_by_chunk(lua_State *L, ngx_http_request_t *r)
     lua_setfenv(co, -2);
 
     /*  save nginx request in coroutine globals table */
-    ngx_http_lua_set_req(co, r);                                // co引用ngx解析出的成员变量
+    ngx_http_lua_set_req(co, r);                                // co引用ngx解析出的成员变量 // 将r 设置到 G表里 __ngx_req
 
     /*  {{{ initialize request context */
     ctx = ngx_http_get_module_ctx(r, ngx_http_lua_module);      // 分配空ctx

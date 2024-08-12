@@ -58,6 +58,8 @@ ngx_http_lua_ngx_sleep(lua_State *L)
                                | NGX_HTTP_LUA_CONTEXT_TIMER
                                | NGX_HTTP_LUA_CONTEXT_SSL_CERT
                                | NGX_HTTP_LUA_CONTEXT_SSL_SESS_FETCH);
+    // 与ngx.exit相比(ngx_http_lua_control.c:ngx_http_lua_ffi_exit) 少了
+    // NGX_HTTP_LUA_CONTEXT_HEADER_FILTER  NGX_HTTP_LUA_CONTEXT_BALANCER  NGX_HTTP_LUA_CONTEXT_SSL_SESS_STORE
 
     coctx = ctx->cur_co_ctx;
     if (coctx == NULL) {
