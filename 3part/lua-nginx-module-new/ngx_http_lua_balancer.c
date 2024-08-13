@@ -143,7 +143,7 @@ ngx_http_lua_balancer_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
 
     value = cf->args->elts;
 
-    lscf->balancer.handler = (ngx_http_lua_srv_conf_handler_pt) cmd->post;
+    lscf->balancer.handler = (ngx_http_lua_srv_conf_handler_pt) cmd->post;      // hankai1 记录cmd->post(即协程回调) 即ngx_http_lua_module.c: "balancer_by_lua_block中的ngx_http_lua_balancer_handler_inline 或 ngx_http_lua_balancer_handler_file "
 
     if (cmd->post == ngx_http_lua_balancer_handler_file) {
         /* Lua code in an external file */
@@ -192,7 +192,7 @@ ngx_http_lua_balancer_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
                            "load balancing method redefined");
     }
 
-    uscf->peer.init_upstream = ngx_http_lua_balancer_init;
+    uscf->peer.init_upstream = ngx_http_lua_balancer_init;          // 重置该upstream的 init_upstream
 
     uscf->flags = NGX_HTTP_UPSTREAM_CREATE
                   |NGX_HTTP_UPSTREAM_WEIGHT
@@ -205,7 +205,7 @@ ngx_http_lua_balancer_by_lua(ngx_conf_t *cf, ngx_command_t *cmd,
 
 
 static ngx_int_t
-ngx_http_lua_balancer_init(ngx_conf_t *cf,
+ngx_http_lua_balancer_init(ngx_conf_t *cf,                          // ngx_http.c:263
     ngx_http_upstream_srv_conf_t *us)
 {
     if (ngx_http_upstream_init_round_robin(cf, us) != NGX_OK) {
@@ -213,7 +213,7 @@ ngx_http_lua_balancer_init(ngx_conf_t *cf,
     }
 
     /* this callback is called upon individual requests */
-    us->peer.init = ngx_http_lua_balancer_init_peer;
+    us->peer.init = ngx_http_lua_balancer_init_peer;                // 建联前夕调用 4 UPSTREAM // ngx_http_upstream.c:ngx_http_upstream_init_request
 
     return NGX_OK;
 }
@@ -255,7 +255,7 @@ ngx_http_lua_balancer_init_peer(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_lua_balancer_get_peer(ngx_peer_connection_t *pc, void *data)
+ngx_http_lua_balancer_get_peer(ngx_peer_connection_t *pc, void *data)   // 建联函数ngx_event_connect中调用
 {
     lua_State                          *L;
     ngx_int_t                           rc;
@@ -306,7 +306,7 @@ ngx_http_lua_balancer_get_peer(ngx_peer_connection_t *pc, void *data)
      */
     lmcf->balancer_peer_data = bp;
 
-    rc = lscf->balancer.handler(r, lscf, L);
+    rc = lscf->balancer.handler(r, lscf, L);                            // hankai3 回调lua代码 非协程!
 
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
@@ -352,7 +352,7 @@ ngx_http_lua_balancer_get_peer(ngx_peer_connection_t *pc, void *data)
 
 
 static ngx_int_t
-ngx_http_lua_balancer_by_chunk(lua_State *L, ngx_http_request_t *r)
+ngx_http_lua_balancer_by_chunk(lua_State *L, ngx_http_request_t *r)             // hankai3.1 执行lua代码
 {
     u_char                  *err_msg;
     size_t                   len;
@@ -375,7 +375,7 @@ ngx_http_lua_balancer_by_chunk(lua_State *L, ngx_http_request_t *r)
     lua_insert(L, 1);  /* put it under chunk and args */
 
     /*  protected call user code */
-    rc = lua_pcall(L, 0, 1, 1);
+    rc = lua_pcall(L, 0, 1, 1);                                                 // 执行lua
 
     lua_remove(L, 1);  /* remove traceback function */
 
