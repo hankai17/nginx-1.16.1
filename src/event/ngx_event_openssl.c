@@ -1509,7 +1509,7 @@ ngx_ssl_new_client_session(ngx_ssl_conn_t *ssl_conn, ngx_ssl_session_t *sess)
 
 
 ngx_int_t
-ngx_ssl_create_connection(ngx_ssl_t *ssl, ngx_connection_t *c, ngx_uint_t flags)
+ngx_ssl_create_connection(ngx_ssl_t *ssl, ngx_connection_t *c, ngx_uint_t flags)    // 根据server块级别中的ssl 调用SSL_new分配 ssl connection // 收到连接后/建链后调用该函数
 {
     ngx_ssl_connection_t  *sc;
 
@@ -1604,6 +1604,7 @@ ngx_ssl_set_session(ngx_connection_t *c, ngx_ssl_session_t *session)            
 
 ngx_int_t
 ngx_ssl_handshake(ngx_connection_t *c)      // 第一次收到client hello之后 完成初始化之后 调用之 里面调用openssl的ssl_do_handshake
+                                            // 三次握手成功后 调用之
 {
     int        n, sslerr;
     ngx_err_t  err;
@@ -1616,11 +1617,11 @@ ngx_ssl_handshake(ngx_connection_t *c)      // 第一次收到client hello之后
 
     ngx_ssl_clear_error(c->log);
 
-    n = SSL_do_handshake(c->ssl->connection);
+    n = SSL_do_handshake(c->ssl->connection);   // 三次握手成功后 调用该函数 从抓包上看 调用该函数后 发送了client_hello包
 
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0, "SSL_do_handshake: %d", n);
 
-    if (n == 1) {
+    if (n == 1) {                               // ssl库 握手 校验均完成?
 
         if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
             return NGX_ERROR;
@@ -1636,7 +1637,7 @@ ngx_ssl_handshake(ngx_connection_t *c)      // 第一次收到client hello之后
 
         c->ssl->handshaked = 1;
 
-        c->recv = ngx_ssl_recv;
+        c->recv = ngx_ssl_recv;                 // SSL_read 直接读到明文
         c->send = ngx_ssl_write;
         c->recv_chain = ngx_ssl_recv_chain;
         c->send_chain = ngx_ssl_send_chain;
@@ -1661,16 +1662,16 @@ ngx_ssl_handshake(ngx_connection_t *c)      // 第一次收到client hello之后
 
     ngx_log_debug1(NGX_LOG_DEBUG_EVENT, c->log, 0, "SSL_get_error: %d", sslerr);
 
-    if (sslerr == SSL_ERROR_WANT_READ) {
+    if (sslerr == SSL_ERROR_WANT_READ) {                        // 三次握手后  SSL_do_handshake发送完client_hello后 需要读数据
         c->read->ready = 0;
-        c->read->handler = ngx_ssl_handshake_handler;
+        c->read->handler = ngx_ssl_handshake_handler;           // 重置事件系统读写回调
         c->write->handler = ngx_ssl_handshake_handler;
 
-        if (ngx_handle_read_event(c->read, 0) != NGX_OK) {
+        if (ngx_handle_read_event(c->read, 0) != NGX_OK) {      // 监控读
             return NGX_ERROR;
         }
 
-        if (ngx_handle_write_event(c->write, 0) != NGX_OK) {
+        if (ngx_handle_write_event(c->write, 0) != NGX_OK) {    // 监控写
             return NGX_ERROR;
         }
 
@@ -1882,7 +1883,7 @@ ngx_ssl_handshake_log(ngx_connection_t *c)
 
 
 static void
-ngx_ssl_handshake_handler(ngx_event_t *ev)
+ngx_ssl_handshake_handler(ngx_event_t *ev)          // 事件系统调用的函数 (tls层使用)
 {
     ngx_connection_t  *c;
 
@@ -1896,11 +1897,11 @@ ngx_ssl_handshake_handler(ngx_event_t *ev)
         return;
     }
 
-    if (ngx_ssl_handshake(c) == NGX_AGAIN) {
+    if (ngx_ssl_handshake(c) == NGX_AGAIN) {        // 里面调用  <SSL_do_handshake + SSL_get_error> 双剑客 用于判断底层ssl库是否 tls握手/校验等 结束
         return;
     }
 
-    c->ssl->handler(c);
+    c->ssl->handler(c);                             // 仅当握手结束后 调用ssl->handler
 }
 
 

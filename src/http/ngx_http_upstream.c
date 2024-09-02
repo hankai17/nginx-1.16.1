@@ -1789,7 +1789,7 @@ ngx_http_upstream_ssl_init_connection(ngx_http_request_t *r,    // "建链"(非�
 
     r->connection->log->action = "SSL handshaking to upstream";
 
-    rc = ngx_ssl_handshake(c);
+    rc =ngx_ssl_handshake(c);           // 从抓包上看 调用该函数后 发送了client_hello包
 
     if (rc == NGX_AGAIN) {
 
@@ -1806,7 +1806,7 @@ ngx_http_upstream_ssl_init_connection(ngx_http_request_t *r,    // "建链"(非�
 
 
 static void
-ngx_http_upstream_ssl_handshake_handler(ngx_connection_t *c)
+ngx_http_upstream_ssl_handshake_handler(ngx_connection_t *c)                // tls握手结束后调用该函数
 {
     ngx_http_request_t   *r;
     ngx_http_upstream_t  *u;
@@ -1829,7 +1829,7 @@ ngx_http_upstream_ssl_handshake_handler(ngx_connection_t *c)
 
 
 static void
-ngx_http_upstream_ssl_handshake(ngx_http_request_t *r, ngx_http_upstream_t *u,
+ngx_http_upstream_ssl_handshake(ngx_http_request_t *r, ngx_http_upstream_t *u, // tls握手结束后 重置事件系统回调
     ngx_connection_t *c)
 {
     long  rc;
@@ -1846,7 +1846,7 @@ ngx_http_upstream_ssl_handshake(ngx_http_request_t *r, ngx_http_upstream_t *u,
                 goto failed;
             }
 
-            if (ngx_ssl_check_host(c, &u->ssl_name) != NGX_OK) {
+            if (ngx_ssl_check_host(c, &u->ssl_name) != NGX_OK) {                // 校验对端host
                 ngx_log_error(NGX_LOG_ERR, c->log, 0,
                               "upstream SSL certificate does not match \"%V\"",
                               &u->ssl_name);

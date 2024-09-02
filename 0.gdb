@@ -1,4 +1,5 @@
-set args -c /usr/local/nginx/conf/nginx.conf
+#set args -c /usr/local/nginx/conf/nginx.conf
+set args -c /root/CLionProjects/nginx-1.16.1/nginx.conf
 handle SIGPIPE noprint nopass nostop
 set print pretty
 
@@ -194,4 +195,5 @@ set print pretty
 #b ngx_http_lua_socket_connected_handler
 #b ngx_http_upstream_test_connect
 
-b ngx_http_cache_purge_handler
+#b ngx_http_cache_purge_handler
+b ngx_ssl_handshake
