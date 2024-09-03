@@ -95,9 +95,9 @@ ngx_http_lua_access_handler(ngx_http_request_t *r)
 
     dd("entered? %d", (int) ctx->entered_access_phase);
 
-    if (ctx->entered_access_phase) {
+    if (ctx->entered_access_phase) {        // 重入 场景是 lua层调用sleep/socket后 事件到来了 重入该函数    // CONNECT hankai1.3
         dd("calling wev handler");
-        rc = ctx->resume_handler(r);
+        rc = ctx->resume_handler(r);        // 重入 则调用resume_handler eg: //ngx_http_lua_socket_tcp.c:ctx->resume_handler = ngx_http_lua_socket_tcp_conn_resume;      // 建链成功后 设置后继上下文回调
         dd("wev handler returns %d", (int) rc);
 
         if (rc == NGX_ERROR || rc == NGX_DONE || rc > NGX_OK) {
@@ -329,7 +329,7 @@ ngx_http_lua_access_by_chunk(lua_State *L, ngx_http_request_t *r)
         r->read_event_handler = ngx_http_block_reading;
     }
 
-    rc = ngx_http_lua_run_thread(L, r, ctx, 0);                 //
+    rc = ngx_http_lua_run_thread(L, r, ctx, 0);                 // 
 
     dd("returned %d", (int) rc);
 

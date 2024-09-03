@@ -18,7 +18,7 @@ static ngx_int_t ngx_event_connect_set_transparent(ngx_peer_connection_t *pc,
 
 
 ngx_int_t
-ngx_event_connect_peer(ngx_peer_connection_t *pc) // 与OS建联
+ngx_event_connect_peer(ngx_peer_connection_t *pc) // 与OS建联 并挂树上监听
 {
     int                rc, type, value;
 #if (NGX_HAVE_IP_BIND_ADDRESS_NO_PORT || NGX_LINUX)

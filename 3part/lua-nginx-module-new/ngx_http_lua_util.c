@@ -295,10 +295,10 @@ ngx_http_lua_new_state(lua_State *parent_vm, ngx_cycle_t *cycle,
 
     lua_pop(L, 1); /* remove the "package" table */
 
-    ngx_http_lua_init_registry(L, log);
+    ngx_http_lua_init_registry(L, log);                 // 
     ngx_http_lua_init_globals(L, cycle, lmcf, log);
 
-    return L;
+    return L;                                           // lua_State表示一个独立的lua虚拟机 每个worker均只有一个
 }
 
 
@@ -657,9 +657,10 @@ ngx_http_lua_init_registry(lua_State *L, ngx_log_t *log)
 
     /* {{{ register a table to anchor lua coroutines reliably:
      * {([int]ref) = [cort]} */
-    lua_pushlightuserdata(L, &ngx_http_lua_coroutines_key);
+    lua_pushlightuserdata(L, &ngx_http_lua_coroutines_key);                     // 将一个轻量级用户数据（light userdata）推送到 Lua 栈上
     lua_createtable(L, 0, 32 /* nrec */);
-    lua_rawset(L, LUA_REGISTRYINDEX);
+    lua_rawset(L, LUA_REGISTRYINDEX);                                           // lua_rawset 函数用于在 Lua 的注册表中设置一个值。注册表是一个特殊的表，用于存储全局变量和 C 语言级别的数据。
+                                                                                // 这个函数调用会将栈顶的表（我们刚刚创建的）与之前推送的轻量级用户数据
     /* }}} */
 
     /* create the registry entry for the Lua request ctx data table */
@@ -1064,7 +1065,7 @@ ngx_http_lua_run_thread(lua_State *L, ngx_http_request_t *r,
 
                     ctx->cur_co_ctx = NULL;
 
-                    return NGX_AGAIN;
+                    return NGX_AGAIN;                                           // 如果lua层 tcp等阻塞
 
                 case NGX_HTTP_LUA_USER_THREAD_RESUME:                           // 2)ngx.thread.spawn(见ngx_http_lua_uthread.c: ngx_http_lua_uthread_spawn)
                                                                                 //      子协程co里起协程  起的这个新协程被设为cur了 老协程挂ctx的队列上了
@@ -3085,7 +3086,7 @@ ngx_http_lua_run_posted_threads(ngx_connection_t *c, lua_State *L,
 
 
 ngx_int_t
-ngx_http_lua_post_thread(ngx_http_request_t *r, ngx_http_lua_ctx_t *ctx,
+ngx_http_lua_post_thread(ngx_http_request_t *r, ngx_http_lua_ctx_t *ctx,    // 协程里起线程
     ngx_http_lua_co_ctx_t *coctx)       // 将coctx挂当前ctx post队列上
 {
     ngx_http_lua_posted_thread_t  **p;

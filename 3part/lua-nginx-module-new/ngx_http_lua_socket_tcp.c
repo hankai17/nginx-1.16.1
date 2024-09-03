@@ -532,7 +532,8 @@ ngx_http_lua_socket_tcp_connect(lua_State *L)   // 在lua脚本里触发此函�
         /* the key's index is 2 */
 
         lua_pushvalue(L, 2);
-        lua_rawseti(L, 1, SOCKET_KEY_INDEX);
+        lua_rawseti(L, 1, SOCKET_KEY_INDEX);        // host: port是怎么插入的?
+                                                    // 将栈顶的值(host: port) 存储在栈索引1处的表中的 SOCKET_KEY_INDEX 键下
     }
 
     lua_rawgeti(L, 1, SOCKET_CTX_INDEX);
@@ -696,7 +697,7 @@ ngx_http_lua_socket_tcp_connect(lua_State *L)   // 在lua脚本里触发此函�
     }
 
     if (u->resolved->sockaddr) {                                        // 非域名形式 
-        rc = ngx_http_lua_socket_resolve_retval_handler(r, u, L);       // 直接与OS建链
+        rc = ngx_http_lua_socket_resolve_retval_handler(r, u, L);       // 直接与OS建链 // 里面会挂树上监听
         if (rc == NGX_AGAIN) {
             return lua_yield(L, 0);
         }
@@ -1036,7 +1037,7 @@ ngx_http_lua_socket_resolve_retval_handler(ngx_http_request_t *r,
 
     pc->get = ngx_http_lua_socket_tcp_get_peer;
 
-    rc = ngx_event_connect_peer(pc);        // 建链   分配pc->connection
+    rc = ngx_event_connect_peer(pc);        // 建链   分配pc->connection 里面会挂到epoll树上
 
     if (rc == NGX_ERROR) {
         u->socket_errno = ngx_socket_errno;
@@ -1086,7 +1087,7 @@ ngx_http_lua_socket_resolve_retval_handler(ngx_http_request_t *r,
     c->write->handler = ngx_http_lua_socket_tcp_handler;                // 设置pc->connection的 rev级别回调  // 这里是ngx的ES 触发 lua运行的'大门'
     c->read->handler = ngx_http_lua_socket_tcp_handler;
 
-    u->write_event_handler = ngx_http_lua_socket_connected_handler;
+    u->write_event_handler = ngx_http_lua_socket_connected_handler;     // CONNECT hankai0
     u->read_event_handler = ngx_http_lua_socket_connected_handler;
 
     c->sendfile &= r->connection->sendfile;
@@ -2791,7 +2792,7 @@ ngx_http_lua_socket_tcp_settimeouts(lua_State *L)           // 分别设置timeo
 
 
 static void
-ngx_http_lua_socket_tcp_handler(ngx_event_t *ev)
+ngx_http_lua_socket_tcp_handler(ngx_event_t *ev)            // es层 lua的入大门     // CONNECT hankai1
 {
     ngx_connection_t                *c;
     ngx_http_request_t              *r;
@@ -2814,7 +2815,7 @@ ngx_http_lua_socket_tcp_handler(ngx_event_t *ev)
                    &r->args, (int) ev->write);
 
     if (ev->write) {
-        u->write_event_handler(r, u);
+        u->write_event_handler(r, u);                       // CONNECT hankai1.1
 
     } else {
         u->read_event_handler(r, u);
@@ -2998,7 +2999,7 @@ ngx_http_lua_socket_send(ngx_http_request_t *r,
 
 
 static void
-ngx_http_lua_socket_handle_conn_success(ngx_http_request_t *r,
+ngx_http_lua_socket_handle_conn_success(ngx_http_request_t *r,          // CONNECT hankai1.2
     ngx_http_lua_socket_tcp_upstream_t *u)
 {
     ngx_http_lua_ctx_t          *ctx;
@@ -3021,7 +3022,7 @@ ngx_http_lua_socket_handle_conn_success(ngx_http_request_t *r,
             return;
         }
 
-        ctx->resume_handler = ngx_http_lua_socket_tcp_conn_resume;      // 建链成功后 设置后继上下文回调
+        ctx->resume_handler = ngx_http_lua_socket_tcp_conn_rsume;      // 建链成功后 设置后继上下文回调
         ctx->cur_co_ctx = coctx;
 
         ngx_http_lua_assert(coctx && (!ngx_http_lua_is_thread(ctx)
@@ -3030,7 +3031,8 @@ ngx_http_lua_socket_handle_conn_success(ngx_http_request_t *r,
         ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                        "lua tcp socket waking up the current request (conn)");
 
-        r->write_event_handler(r);                                      // 回调resume_handler
+        r->write_event_handler(r);                                      // 回调resume_handler // 进入nginx引擎 引擎中调用 ngx_http_core_run_phase 再次进入lua中 走上面设置的resume_handler
+                                                                        // CONNECT hankai1.2 设置协程上下文 准备从ngx引擎跳到协程中
     }
 }
 
@@ -3237,7 +3239,7 @@ ngx_http_lua_socket_handle_write_error(ngx_http_request_t *r,
 
 
 static void
-ngx_http_lua_socket_connected_handler(ngx_http_request_t *r,
+ngx_http_lua_socket_connected_handler(ngx_http_request_t *r,                    // CONNECT hankai1.1
     ngx_http_lua_socket_tcp_upstream_t *u)
 {
     ngx_int_t                    rc;
@@ -3264,7 +3266,7 @@ ngx_http_lua_socket_connected_handler(ngx_http_request_t *r,
         ngx_del_timer(c->write);
     }
 
-    rc = ngx_http_lua_socket_test_connect(r, c);
+    rc = ngx_http_lua_socket_test_connect(r, c);                                // 检查建链ok
     if (rc != NGX_OK) {
         if (rc > 0) {
             u->socket_errno = (ngx_err_t) rc;
@@ -3283,7 +3285,7 @@ ngx_http_lua_socket_connected_handler(ngx_http_request_t *r,
      * on the Lua land, thus causing hot spin around level triggered
      * event poll and wasting CPU cycles. */
 
-    if (ngx_handle_write_event(c->write, 0) != NGX_OK) {            // 确保监听读写
+    if (ngx_handle_write_event(c->write, 0) != NGX_OK) {                        // 确保监听读写
         ngx_http_lua_socket_handle_conn_error(r, u,
                                               NGX_HTTP_LUA_SOCKET_FT_ERROR);
         return;
@@ -3295,7 +3297,7 @@ ngx_http_lua_socket_connected_handler(ngx_http_request_t *r,
         return;
     }
 
-    ngx_http_lua_socket_handle_conn_success(r, u);
+    ngx_http_lua_socket_handle_conn_success(r, u);                              // CONNECT hankai1.2
 }
 
 
@@ -4460,7 +4462,7 @@ ngx_http_lua_socket_tcp_getreusedtimes(lua_State *L)
 
 
 static int
-ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)
+ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)                      // lua_State表示一个独立的lua虚拟机 每个worker均只有一个
 {
     ngx_http_lua_loc_conf_t             *llcf;
     ngx_http_lua_socket_tcp_upstream_t  *u;
@@ -4490,11 +4492,11 @@ ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)
 
     luaL_checktype(L, 1, LUA_TTABLE);
 
-    lua_pushlightuserdata(L, &ngx_http_lua_socket_pool_key);
+    lua_pushlightuserdata(L, &ngx_http_lua_socket_pool_key);            // 获取当前worker的vm中的 全局注册表中 socket_pool注册表 中的socket_key表
     lua_rawget(L, LUA_REGISTRYINDEX);
 
     lua_rawgeti(L, 1, SOCKET_KEY_INDEX);
-    key.data = (u_char *) lua_tolstring(L, -1, &key.len);
+    key.data = (u_char *) lua_tolstring(L, -1, &key.len);               // "host: ip" 表
     if (key.data == NULL) {
         lua_pushnil(L);
         lua_pushliteral(L, "key not found");
@@ -5207,7 +5209,7 @@ static ngx_int_t ngx_http_lua_socket_insert_buffer(ngx_http_request_t *r,
 
 
 static ngx_int_t
-ngx_http_lua_socket_tcp_conn_resume(ngx_http_request_t *r)
+ngx_http_lua_socket_tcp_conn_resume(ngx_http_request_t *r)                      // CONNECT hankai1.4
 {
     return ngx_http_lua_socket_tcp_resume_helper(r, SOCKET_OP_CONNECT);
 }
@@ -5228,7 +5230,8 @@ ngx_http_lua_socket_tcp_write_resume(ngx_http_request_t *r)
 
 
 static ngx_int_t
-ngx_http_lua_socket_tcp_resume_helper(ngx_http_request_t *r, int socket_op)     // 场景是 事件已经到来(已经建链好了/已经读到了数据) 需要恢复上下文
+ngx_http_lua_socket_tcp_resume_helper(ngx_http_request_t *r, int socket_op)     // 场景是 事件到来(建链/读到数据) 需要恢复上下文 // 上次调用resume_handler
+                                                                                // CONNECT hankai1.4
 {
     int                          nret;
     lua_State                   *vm;
@@ -5246,7 +5249,7 @@ ngx_http_lua_socket_tcp_resume_helper(ngx_http_request_t *r, int socket_op)     
         return NGX_ERROR;
     }
 
-    ctx->resume_handler = ngx_http_lua_wev_handler;             // 设置后继上下文为可写回调
+    ctx->resume_handler = ngx_http_lua_wev_handler;                             // 设置后继上下文为可写回调
 
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "lua tcp operation done, resuming lua thread");
@@ -5260,7 +5263,7 @@ ngx_http_lua_socket_tcp_resume_helper(ngx_http_request_t *r, int socket_op)     
     switch (socket_op) {
     case SOCKET_OP_CONNECT:
     case SOCKET_OP_WRITE:
-        prepare_retvals = u->write_prepare_retvals;
+        prepare_retvals = u->write_prepare_retvals;                             // 
         break;
 
     case SOCKET_OP_READ:
@@ -5276,7 +5279,8 @@ ngx_http_lua_socket_tcp_resume_helper(ngx_http_request_t *r, int socket_op)     
                    "lua tcp socket calling prepare retvals handler %p, "
                    "u:%p", prepare_retvals, u);
 
-    nret = prepare_retvals(r, u, ctx->cur_co_ctx->co);          // eg: ngx_http_lua_socket_tcp_receive_retval_handler将读到的数据拷贝到 lua结构里
+    nret = prepare_retvals(r, u, ctx->cur_co_ctx->co);                          // eg: ngx_http_lua_socket_tcp_receive_retval_handler将读到的数据拷贝到 lua结构里
+                                                                                // CONNECT hankai1.5 eg: ngx_http_lua_socket_tcp_conn_retval_handler // 检查错误值?
     if (nret == NGX_AGAIN) {
         return NGX_DONE;
     }
@@ -5284,7 +5288,7 @@ ngx_http_lua_socket_tcp_resume_helper(ngx_http_request_t *r, int socket_op)     
     c = r->connection;
     vm = ngx_http_lua_get_lua_vm(r, ctx);
 
-    rc = ngx_http_lua_run_thread(vm, r, ctx, nret);             // 恢复上下文 即到lua脚本里
+    rc = ngx_http_lua_run_thread(vm, r, ctx, nret);                             // 恢复上下文 即到lua脚本里 // CONNECT hankai2 拿着返回值 恢复上下文
 
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "lua run thread returned %d", rc);
