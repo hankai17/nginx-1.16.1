@@ -411,6 +411,131 @@ ngx_http_lua_socket_tcp(lua_State *L)
     return 1;
 }
 
+/*
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdarg.h>
+#include <time.h>
+#define OUT_FILE "/home/debug.txt"
+#define WAF_LOG_DEBUG(fmt,...)\
+do{ \
+    char cmd[512+100] = {0}; \
+    char tmp[512] = {0}; \
+    static time_t ngx_now;\
+    time(&ngx_now);\
+    struct tm * ngx_curTime;\
+    ngx_curTime = localtime(&ngx_now); \
+    snprintf(tmp, 512,"%d-%d-%d %2d:%2d:%2d   Func:%s Len:%d ------  "fmt,\
+            ngx_curTime->tm_year+1900,ngx_curTime->tm_mon+1,ngx_curTime->tm_mday, \
+            ngx_curTime->tm_hour,ngx_curTime->tm_min, ngx_curTime->tm_sec, \
+            __FUNCTION__,__LINE__ ,##__VA_ARGS__);\
+    snprintf(cmd, 512+100, "echo %s >> %s", tmp, OUT_FILE); \
+    system(cmd);\
+}while(0)
+
+
+void print_value(lua_State *L, int idx) {
+    int t = lua_type(L, idx);
+    switch (t) {
+        case LUA_TBOOLEAN:
+            WAF_LOG_DEBUG("%s", lua_toboolean(L, idx) ? "true" : "false");
+            break;
+        case LUA_TNUMBER:
+            WAF_LOG_DEBUG("%g", lua_tonumber(L, idx));
+            break;
+        case LUA_TSTRING:
+            WAF_LOG_DEBUG("'%s'", lua_tostring(L, idx));
+            break;
+        case LUA_TTABLE:
+            print_table(L, idx);
+            break;
+        case LUA_TNIL:
+            WAF_LOG_DEBUG("nil");
+            break;
+        default:
+            WAF_LOG_DEBUG("%s", lua_typename(L, t));
+            break;
+    }
+}
+
+void print_table(lua_State *L, int idx) {
+    WAF_LOG_DEBUG("{");
+    lua_pushnil(L);  // 使用 nil 作为遍历的初始键值
+    while (lua_next(L, idx)) {  // 遍历 table
+        print_value(L, -2);  // 打印键
+        WAF_LOG_DEBUG(" = ");
+        print_value(L, -1);  // 打印值
+        lua_pop(L, 1);  // 弹出值，保留键，继续遍历
+    }
+    WAF_LOG_DEBUG("}");
+}
+
+void print_stack(lua_State *L) {
+    int top = lua_gettop(L);  // 获取栈顶索引
+    int i = 1;
+
+    for (i = 1; i <= top; i++) {  // 遍历栈中的所有元素
+        int t = lua_type(L, i);
+        switch (t) {
+            case LUA_TNIL:
+                WAF_LOG_DEBUG("%d: nil", i);
+                break;
+            case LUA_TNUMBER:
+                WAF_LOG_DEBUG("%d: number %g", i, lua_tonumber(L, i));
+                break;
+            case LUA_TBOOLEAN:
+                WAF_LOG_DEBUG("%d: boolean %s", i, lua_toboolean(L, i) ? "true" : "false");
+                break;
+            case LUA_TSTRING:
+                WAF_LOG_DEBUG("%d: string '%s'", i, lua_tostring(L, i));
+                break;
+            case LUA_TTABLE:
+                //WAF_LOG_DEBUG("%d: table", i);
+                print_table(L, i);
+                break;
+            case LUA_TFUNCTION:
+                WAF_LOG_DEBUG("%d: function", i);
+                break;
+            case LUA_TTHREAD:
+                WAF_LOG_DEBUG("%d: thread", i);
+                break;
+            case LUA_TUSERDATA:
+                WAF_LOG_DEBUG("%d: userdata", i);
+                break;
+            case LUA_TLIGHTUSERDATA:
+                WAF_LOG_DEBUG("%d: light userdata", i);
+                break;
+            default:
+                WAF_LOG_DEBUG("%d: unknown type %d", i, t);
+        }
+    }
+}
+
+
+void PrintLuaStack(lua_State* L)
+{
+    int stackTop=lua_gettop(L);//获取栈顶的索引值  
+    int nIdx = 0;
+    int nType;
+
+    //printf(" element count: %d\n", stackTop);  
+
+    printf("--栈顶(v)(%d)--\n", stackTop);
+
+    //显示栈中的元素  
+    for(nIdx = stackTop;nIdx > 0;--nIdx)
+    {
+        nType = lua_type(L, nIdx);
+        printf("(i:%d) %s(%s)\n",nIdx, lua_typename(L,nType), lua_tostring(L,nIdx));
+    }
+
+    printf("--栈底--\n");
+}
+
+
+
+*/
+
 
 static int
 ngx_http_lua_socket_tcp_connect(lua_State *L)   // 在lua脚本里触发此函数
@@ -460,7 +585,7 @@ ngx_http_lua_socket_tcp_connect(lua_State *L)   // 在lua脚本里触发此函�
                                | NGX_HTTP_LUA_CONTEXT_SSL_CERT
                                | NGX_HTTP_LUA_CONTEXT_SSL_SESS_FETCH);
 
-    luaL_checktype(L, 1, LUA_TTABLE);
+    luaL_checktype(L, 1, LUA_TTABLE);           // 栈底是个table  // ???
 
     p = (u_char *) luaL_checklstring(L, 2, &len);
 
@@ -570,12 +695,12 @@ ngx_http_lua_socket_tcp_connect(lua_State *L)   // 在lua脚本里触发此函�
         }
 
 #if 1
-        lua_pushlightuserdata(L, &ngx_http_lua_upstream_udata_metatable_key);
-        lua_rawget(L, LUA_REGISTRYINDEX);
+        lua_pushlightuserdata(L, &ngx_http_lua_upstream_udata_metatable_key);   // key入栈
+        lua_rawget(L, LUA_REGISTRYINDEX);                                       // 根据入栈的key值 取出注册表(注册表是一个特殊的表 用于存储全局变量和C语言级别的数据)中相应的table 放到栈顶
         lua_setmetatable(L, -2);
 #endif
 
-        lua_rawseti(L, 1, SOCKET_CTX_INDEX);
+        lua_rawseti(L, 1, SOCKET_CTX_INDEX);                                    // KEEP hankai0 为set_keepalive做准备
     }
 
     ngx_memzero(u, sizeof(ngx_http_lua_socket_tcp_upstream_t));                 // memset(u, 0x0, size)
@@ -3006,7 +3131,7 @@ ngx_http_lua_socket_handle_conn_success(ngx_http_request_t *r,          // CONNE
     ngx_http_lua_co_ctx_t       *coctx;
 
 #if 1
-    u->read_event_handler = ngx_http_lua_socket_dummy_handler;
+    u->read_event_handler = ngx_http_lua_socket_dummy_handler;          // CONNECT hankai1.2.1 建链成功后把该fd的上层回调置为空dummy
     u->write_event_handler = ngx_http_lua_socket_dummy_handler;
 #endif
 
@@ -4462,7 +4587,7 @@ ngx_http_lua_socket_tcp_getreusedtimes(lua_State *L)
 
 
 static int
-ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)                      // lua_State表示一个独立的lua虚拟机 每个worker均只有一个
+ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)                      // lua_State表示一个独立的lua虚拟机 每个worker均只有一个    // KEEP hankai1 keepalive开始
 {
     ngx_http_lua_loc_conf_t             *llcf;
     ngx_http_lua_socket_tcp_upstream_t  *u;
