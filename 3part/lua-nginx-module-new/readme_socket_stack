@@ -1,0 +1,169 @@
+2024-9-5 11: 7:30 Func:print_stack Len:964 ------ 2: string 127.0.0.1:6379                                            |        if (u->request && u->request != r) {                                                                         
+                                                                                                                      |            return luaL_error(L, "bad request");                                                                     
+                                                                                                                      |        }                                                                                                            
+2024-9-5 11: 7:30 Func:print_table Len:936 ------ {                                                                   |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 2                                                                   |        ngx_http_lua_socket_check_busy_connecting(r, u, L);                                                          
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |        ngx_http_lua_socket_check_busy_reading(r, u, L);                                                             
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |        ngx_http_lua_socket_check_busy_writing(r, u, L);                                                             
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 3                                                                   |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |        if (u->body_downstream || u->raw_downstream) {                                                               
+2024-9-5 11: 7:30 Func:print_value Len:921 ------ 127.0.0.1:6379                                                      |            return luaL_error(L, "attempt to re-connect a request socket");                                          
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 4                                                                   |        }                                                                                                            
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |        if (u->peer.connection) {                                                                                    
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 5                                                                   |            ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,                                                
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |                           "lua tcp socket reconnect without shutting down");                                        
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_table Len:944 ------ }                                                                   |            ngx_http_lua_socket_tcp_finalize(r, u);                                                                  
+2024-9-5 11: 7:30 Func:print_stack Len:964 ------ 2: string 127.0.0.1:6379                                            |        }                                                                                                            
+2024-9-5 11: 7:30 Func:print_stack Len:977 ------ 3: userdata                                                         |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_stack Len:980 ------ 4: light userdata                                                   |        ngx_log_debug0(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,                                                    
+                                                                                                                      |                       "lua reuse socket upstream ctx");                                                             
+                                                                                                                      |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_table Len:936 ------ {                                                                   |    } else {
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 2                                                                   |        u = lua_newuserdata(L, sizeof(ngx_http_lua_socket_tcp_upstream_t));                                          
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |        if (u == NULL) {
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |            return luaL_error(L, "no memory");                                                                       
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 3                                                                   |        }                                                                                                            
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |
+2024-9-5 11: 7:30 Func:print_value Len:921 ------ 127.0.0.1:6379                                                      |#if 1   
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 4                                                                   |        lua_pushlightuserdata(L, ngx_http_lua_lightudata_mask(                                                       
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |                              upstream_udata_metatable_key));                                                        
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |        print_stack(L);
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 5                                                                   |        lua_rawget(L, LUA_REGISTRYINDEX);                                                                            
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |        print_stack(L);
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |        lua_setmetatable(L, -2);                                                                                     
+2024-9-5 11: 7:30 Func:print_table Len:944 ------ }                                                                   |        print_stack(L);                                                                                              
+2024-9-5 11: 7:30 Func:print_stack Len:964 ------ 2: string 127.0.0.1:6379                                            |#endif                                                                                                               
+2024-9-5 11: 7:30 Func:print_stack Len:977 ------ 3: userdata                                                         |        
+2024-9-5 11: 7:30 Func:print_table Len:936 ------ {                                                                   |        lua_rawseti(L, 1, SOCKET_CTX_INDEX);                                                                         
+2024-9-5 11: 7:30 Func:print_value Len:921 ------ __gc                                                                |        print_stack(L);                                                                                              
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |    }                                                                                                                
+2024-9-5 11: 7:30 Func:print_value Len:930 ------ function                                                            |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_table Len:944 ------ }                                                                   |    ngx_memzero(u, sizeof(ngx_http_lua_socket_tcp_upstream_t));                                                      
+                                                                                                                      |                                                                                                                     
+                                                                                                                      |    u->request = r; /* set the controlling request */                                                                
+2024-9-5 11: 7:30 Func:print_table Len:936 ------ {                                                                   |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 2                                                                   |    u->conf = llcf;                                                                                                  
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |    pc = &u->peer;                                                                                                   
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 3                                                                   |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |    pc->log = r->connection->log;                                                                                    
+2024-9-5 11: 7:30 Func:print_value Len:921 ------ 127.0.0.1:6379                                                      |    pc->log_error = NGX_ERROR_ERR;                                                                                   
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 4                                                                   |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |    dd("lua peer connection log: %p", pc->log);                                                                      
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 5                                                                   |    lua_rawgeti(L, 1, SOCKET_BIND_INDEX);                                                                            
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |    local = lua_touserdata(L, -1);                                                                                   
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |    lua_pop(L, 1);                                                                                                   
+2024-9-5 11: 7:30 Func:print_table Len:944 ------ }                                                                   |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_stack Len:964 ------ 2: string 127.0.0.1:6379                                            |    if (local) {                                                                                                     
+2024-9-5 11: 7:30 Func:print_stack Len:977 ------ 3: userdata                                                         |        u->peer.local = local;                                                                                       
+                                                                                                                      |    }                                                                                                                
+                                                                                                                      |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_table Len:936 ------ {                                                                   |    lua_rawgeti(L, 1, SOCKET_CONNECT_TIMEOUT_INDEX);                                                                 
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1                                                                   |    lua_rawgeti(L, 1, SOCKET_SEND_TIMEOUT_INDEX);                                                                    
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |    lua_rawgeti(L, 1, SOCKET_READ_TIMEOUT_INDEX);                                                                    
+2024-9-5 11: 7:30 Func:print_value Len:930 ------ userdata                                                            |                                                                                                                     
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 2                                                                   |    read_timeout = (ngx_int_t) lua_tointeger(L, -1);                                                                 
+2024-9-5 11: 7:30 Func:print_table Len:940 ------ =                                                                   |    send_timeout = (ngx_int_t) lua_tointeger(L, -2);                                                                 
+2024-9-5 11: 7:30 Func:print_value Len:918 ------ 1000                                                                |    connect_timeout = (ngx_int_t) lua_tointeger(L, -3);                                                              
+/home/debug.txt[+][POS=91,61][81%][unix][utf-8][2024-09-05 11:11:31]                                                   <y-1.21.4.2rc1/build/ngx_lua-0.10.24/src/ngx_http_lua_socket_tcp.c[POS=1241,9][18%][unix][utf-8
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |    local = lua_touserdata(L, -1);                                                                                   
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 1000                                                                |    lua_pop(L, 1);                                                                                                   
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 3                                                                   |                                                                                                                     
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |    if (local) {                                                                                                     
+2024-9-5 11:37:49 Func:print_value Len:922 ------ 192.168.78.4:6379                                                   |        u->peer.local = local;                                                                                       
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 4                                                                   |    }                                                                                                                
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |                                                                                                                     
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 1000                                                                |    lua_rawgeti(L, 1, SOCKET_CONNECT_TIMEOUT_INDEX);                                                                 
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 5                                                                   |    lua_rawgeti(L, 1, SOCKET_SEND_TIMEOUT_INDEX);                                                                    
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |    lua_rawgeti(L, 1, SOCKET_READ_TIMEOUT_INDEX);                                                                    
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 1000                                                                |                                                                                                                     
+2024-9-5 11:37:49 Func:print_table Len:945 ------ }                                                                   |    read_timeout = (ngx_int_t) lua_tointeger(L, -1);                                                                 
+2024-9-5 11:37:49 Func:print_stack Len:965 ------ 2: string 192.168.78.4:6379                                         |    send_timeout = (ngx_int_t) lua_tointeger(L, -2);                                                                 
+2024-9-5 11:37:49 Func:print_table Len:937 ------ {                                                                   |    connect_timeout = (ngx_int_t) lua_tointeger(L, -3);                                                              
+2024-9-5 11:37:49 Func:print_value Len:922 ------ 127.0.0.1:6379                                                      |                                                                                                                     
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |    lua_pop(L, 3);                                                                                                   
+2024-9-5 11:37:49 Func:print_value Len:931 ------ userdata                                                            |                                                                                                                     
+2024-9-5 11:37:49 Func:print_table Len:945 ------ }                                                                   |    print_stack(L);                                                                                                  
+                                                                                                                      |    if (connect_timeout > 0) {                                                                                       
+                                                                                                                      |        u->connect_timeout = (ngx_msec_t) connect_timeout;                                                           
+2024-9-5 11:37:49 Func:print_table Len:937 ------ {                                                                   |                                                                                                                     
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 1                                                                   |    } else {                                                                                                         
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |        u->connect_timeout = u->conf->connect_timeout;                                                               
+2024-9-5 11:37:49 Func:print_value Len:931 ------ userdata                                                            |    }                                                                                                                
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 2                                                                   |                                                                                                                     
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |    if (send_timeout > 0) {                                                                                          
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 1000                                                                |        u->send_timeout = (ngx_msec_t) send_timeout;                                                                 
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 3                                                                   |                                                                                                                     
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |    } else {                                                                                                         
+2024-9-5 11:37:49 Func:print_value Len:922 ------ 192.168.78.4:6379                                                   |        u->send_timeout = u->conf->send_timeout;                                                                     
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 4                                                                   |    }                                                                                                                
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |                                                                                                                     
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 1000                                                                |    if (read_timeout > 0) {                                                                                          
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 5                                                                   |        u->read_timeout = (ngx_msec_t) read_timeout;                                                                 
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |                                                                                                                     
+2024-9-5 11:37:49 Func:print_value Len:919 ------ 1000                                                                |    } else {                                                                                                         
+2024-9-5 11:37:49 Func:print_table Len:945 ------ }                                                                   |        u->read_timeout = u->conf->read_timeout;                                                                     
+2024-9-5 11:37:49 Func:print_stack Len:965 ------ 2: string 192.168.78.4:6379                                         |    }                                                                                                                
+2024-9-5 11:37:49 Func:print_table Len:937 ------ {       // 这个就是全局pool
+2024-9-5 11:37:49 Func:print_value Len:922 ------ 127.0.0.1:6379                                                      |    lua_pushlightuserdata(L, ngx_http_lua_lightudata_mask(socket_pool_key));                                         
+2024-9-5 11:37:49 Func:print_table Len:941 ------ =                                                                   |    lua_rawget(L, LUA_REGISTRYINDEX); /* table */   根据key 即<ip:port> 查找全局pool 
+2024-9-5 11:37:49 Func:print_value Len:931 ------ userdata                                                            |    lua_pushvalue(L, key_index); /* key */                                                                           
+2024-9-5 11:37:49 Func:print_table Len:945 ------ }                                                                   |                                                                                                                     
+                                                                                                                      |    print_stack(L);                                                                                                  
+                                                                                                                      |    lua_rawget(L, -2);                                                                                               
+----------------------------------------------------------------------------------------------------                  |    spool = lua_touserdata(L, -1);                                                                                   
+                                                                                                                      |    lua_pop(L, 1);                                                                                                   
+                                                                                                                      |                                                                                                                     
+2024-9-5 11:37:53 Func:print_table Len:937 ------ {                                                                   |    print_stack(L);                                                                                                  
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 2                                                                   |    if (spool != NULL) {                                                                                             
+2024-9-5 11:37:53 Func:print_table Len:941 ------ =                                                                   |        u->socket_pool = spool;                                                                                      
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 1000                                                                |                                                                                                                     
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 4                                                                   |    } else if (pool_size > 0) {                                                                                      
+2024-9-5 11:37:53 Func:print_table Len:941 ------ =                                                                   |        lua_pushvalue(L, key_index);                                                                                 
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 1000                                                                |        key.data = (u_char *) lua_tolstring(L, -1, &key.len);                                                        
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 5                                                                   |                                                                                                                     
+2024-9-5 11:37:53 Func:print_table Len:941 ------ =                                                                   |        ngx_http_lua_socket_tcp_create_socket_pool(L, r, key, pool_size,                                             
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 1000                                                                |                                                   backlog, &spool);                                                 
+2024-9-5 11:37:53 Func:print_table Len:945 ------ }                                                                   |        u->socket_pool = spool;                                                                                      
+2024-9-5 11:37:53 Func:print_stack Len:965 ------ 2: string 127.0.0.1                                                 |    }                                                                                                                
+2024-9-5 11:37:53 Func:print_stack Len:959 ------ 3: number 6379                                                      |                                                                                                                     
+2024-9-5 11:37:53 Func:print_stack Len:956 ------ 4: nil                                                              |    return ngx_http_lua_socket_tcp_connect_helper(L, u, r, ctx, p,                                                   
+2024-9-5 11:37:53 Func:print_table Len:937 ------ {                                                                   |                                                  len, port, 0);                                                     
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 1                                                                   |}                                                                                                                    
+2024-9-5 11:37:53 Func:print_table Len:941 ------ =                                                                   |                                                                                                                     
+2024-9-5 11:37:53 Func:print_value Len:931 ------ userdata                                                            |                                                                                                                     
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 2                                                                   |static void                                                                                                          
+2024-9-5 11:37:53 Func:print_table Len:941 ------ =                                                                   |ngx_http_lua_socket_resolve_handler(ngx_resolver_ctx_t *ctx)                                                         
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 1000                                                                |{                                                                                                                    
+2024-9-5 11:37:53 Func:print_value Len:919 ------ 3                                                                   |    ngx_http_request_t                  *r;                                                                          

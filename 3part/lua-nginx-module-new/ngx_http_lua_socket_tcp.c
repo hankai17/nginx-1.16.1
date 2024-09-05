@@ -5543,3 +5543,67 @@ ngx_http_lua_cleanup_conn_pools(lua_State *L)
 }
 
 /* vi:set ft=c ts=4 sw=4 et fdm=marker: */
+
+/*
+栈底
+2024-9-5 10:12:25 Func:print_table Len:936 ------ {                       
+2024-9-5 10:12:25 Func:print_value Len:918 ------ 2                       
+2024-9-5 10:12:25 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:25 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:25 Func:print_value Len:918 ------ 4                       
+2024-9-5 10:12:25 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:25 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:25 Func:print_value Len:918 ------ 5                       
+2024-9-5 10:12:25 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:25 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:25 Func:print_table Len:944 ------ }                       
+2024-9-5 10:12:26 Func:print_stack Len:964 ------ 2: string 127.0.0.1     
+2024-9-5 10:12:26 Func:print_stack Len:958 ------ 3: number 6379          
+栈顶
+                                                                          
+                                                                          
+2024-9-5 10:12:26 Func:print_table Len:936 ------ {                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 2                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 4                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 5                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_table Len:944 ------ }                       
+2024-9-5 10:12:26 Func:print_stack Len:964 ------ 2: string 127.0.0.1     
+2024-9-5 10:12:26 Func:print_stack Len:958 ------ 3: number 6379          
+2024-9-5 10:12:26 Func:print_stack Len:964 ------ 4: string :             
+                                                                          
+                                                                          
+2024-9-5 10:12:26 Func:print_table Len:936 ------ {                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 2                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 4                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 5                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_table Len:944 ------ }                       
+2024-9-5 10:12:26 Func:print_stack Len:964 ------ 2: string 127.0.0.1     
+2024-9-5 10:12:26 Func:print_stack Len:964 ------ 3: string :             
+2024-9-5 10:12:26 Func:print_stack Len:958 ------ 4: number 6379          
+                                                                          
+                                                                          
+2024-9-5 10:12:26 Func:print_table Len:936 ------ {                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 2                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 4                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 5                       
+2024-9-5 10:12:26 Func:print_table Len:940 ------ =                       
+2024-9-5 10:12:26 Func:print_value Len:918 ------ 1000                    
+2024-9-5 10:12:26 Func:print_table Len:944 ------ }                       
+2024-9-5 10:12:26 Func:print_stack Len:964 ------ 2: string 127.0.0.1:6379    
+*/
