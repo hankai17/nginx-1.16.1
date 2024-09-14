@@ -83,7 +83,7 @@ ngx_http_lua_body_filter_by_lua_env(lua_State *L, ngx_http_request_t *r,
 
 
 ngx_int_t
-ngx_http_lua_body_filter_by_chunk(lua_State *L, ngx_http_request_t *r,
+ngx_http_lua_body_filter_by_chunk(lua_State *L, ngx_http_request_t *r,              // hankai1.2
     ngx_chain_t *in)
 {
     ngx_int_t        rc;
@@ -105,7 +105,7 @@ ngx_http_lua_body_filter_by_chunk(lua_State *L, ngx_http_request_t *r,
     lua_insert(L, 1);  /* put it under chunk and args */
 
     dd("protected call user code");
-    rc = lua_pcall(L, 0, 1, 1);
+    rc = lua_pcall(L, 0, 1, 1);                                                     // hankai1.2 执行lua层代码
 
     lua_remove(L, 1);  /* remove traceback function */
 
@@ -149,7 +149,7 @@ ngx_http_lua_body_filter_by_chunk(lua_State *L, ngx_http_request_t *r,
 
 
 ngx_int_t
-ngx_http_lua_body_filter_inline(ngx_http_request_t *r, ngx_chain_t *in)
+ngx_http_lua_body_filter_inline(ngx_http_request_t *r, ngx_chain_t *in)             // hankai1.1
 {
     lua_State                   *L;
     ngx_int_t                    rc;
@@ -169,7 +169,7 @@ ngx_http_lua_body_filter_inline(ngx_http_request_t *r, ngx_chain_t *in)
         return NGX_ERROR;
     }
 
-    rc = ngx_http_lua_body_filter_by_chunk(L, r, in);
+    rc = ngx_http_lua_body_filter_by_chunk(L, r, in);                               // hankai1.2
 
     dd("body filter by chunk returns %d", (int) rc);
 
@@ -229,7 +229,7 @@ ngx_http_lua_body_filter_file(ngx_http_request_t *r, ngx_chain_t *in)
 
 
 static ngx_int_t
-ngx_http_lua_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
+ngx_http_lua_body_filter(ngx_http_request_t *r, ngx_chain_t *in)                // hankai1
 {
     ngx_http_lua_loc_conf_t     *llcf;
     ngx_http_lua_ctx_t          *ctx;
@@ -289,7 +289,7 @@ ngx_http_lua_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
     ctx->context = NGX_HTTP_LUA_CONTEXT_BODY_FILTER;
 
     dd("calling body filter handler");
-    rc = llcf->body_filter_handler(r, in);
+    rc = llcf->body_filter_handler(r, in);                      // hankai1.1 ngx_http_lua_body_filter_inline // ngx_http_lua_directive.c:ngx_http_lua_body_filter_by_lua
 
     dd("calling body filter handler returned %d", (int) rc);
 
@@ -301,7 +301,7 @@ ngx_http_lua_body_filter(ngx_http_request_t *r, ngx_chain_t *in)
 
     L = ngx_http_lua_get_lua_vm(r, ctx);
 
-    lua_getglobal(L, ngx_http_lua_chain_key);
+    lua_getglobal(L, ngx_http_lua_chain_key);                   // 获取"luaed"后的r->buf
     out = lua_touserdata(L, -1);
     lua_pop(L, 1);
 
@@ -345,7 +345,7 @@ ngx_http_lua_body_filter_init(void)
 
 
 int
-ngx_http_lua_body_filter_param_get(lua_State *L)
+ngx_http_lua_body_filter_param_get(lua_State *L)                            // hankai1.3 将r->buf中的数据拷贝到lua层
 {
     u_char              *data, *p;
     size_t               size;
@@ -370,7 +370,7 @@ ngx_http_lua_body_filter_param_get(lua_State *L)
         /* asking for the eof argument */
 
         for (cl = in; cl; cl = cl->next) {
-            if (cl->buf->last_buf || cl->buf->last_in_chain) {
+            if (cl->buf->last_buf || cl->buf->last_in_chain) {              // eof 的来源是 r->buf中有last标志
                 lua_pushboolean(L, 1);
                 return 1;
             }
@@ -395,7 +395,7 @@ ngx_http_lua_body_filter_param_get(lua_State *L)
         dd("seen only single buffer");
 
         b = in->buf;
-        lua_pushlstring(L, (char *) b->pos, b->last - b->pos);
+        lua_pushlstring(L, (char *) b->pos, b->last - b->pos);              // 发生一次拷贝 拷贝到lua栈里 以待lua层读取数据
         return 1;
     }
 
@@ -413,7 +413,7 @@ ngx_http_lua_body_filter_param_get(lua_State *L)
 
     data = (u_char *) lua_newuserdata(L, size);
 
-    for (p = data, cl = in; cl; cl = cl->next) {
+    for (p = data, cl = in; cl; cl = cl->next) {                            // 拷贝到lua栈上 // 不修改原始r->buf 即不消费
         b = cl->buf;
         p = ngx_copy(p, b->pos, b->last - b->pos);
 
@@ -427,8 +427,8 @@ ngx_http_lua_body_filter_param_get(lua_State *L)
 }
 
 
-int
-ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
+int                                                                         // hankai1.4 将lua层代码拷贝到r->buf中
+ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,     // lua层调用set eg:     ngx.arg[1] = body2    ngx.arg[2] = false
     ngx_http_lua_ctx_t *ctx)
 {
     int                      type;
@@ -450,7 +450,7 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
         return luaL_error(L, "bad index: %d", idx);
     }
 
-    if (idx == 2) {
+    if (idx == 2) {                                                         // 下标是2
         /* overwriting the eof flag */
         last = lua_toboolean(L, 3);
 
@@ -458,14 +458,14 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
         in = lua_touserdata(L, -1);
         lua_pop(L, 1);
 
-        if (last) {
+        if (last) {                                                         // lua层置eof
             ctx->seen_last_in_filter = 1;
 
             /* the "in" chain cannot be NULL and we set the "last_buf" or
              * "last_in_chain" flag in the last buf of "in" */
 
             for (cl = in; cl; cl = cl->next) {
-                if (cl->next == NULL) {
+                if (cl->next == NULL) {                                     // 将最后一个buff置位last
                     if (r == r->main) {
                         cl->buf->last_buf = 1;
 
@@ -477,7 +477,7 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
                 }
             }
 
-        } else {
+        } else {                                                            // lua层未置eof
             /* last == 0 */
 
             found = 0;
@@ -510,15 +510,15 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
 
     /* idx == 1, overwriting the chunk data */
 
-    type = lua_type(L, 3);
+    type = lua_type(L, 3);                                                  // 下标是1  // 将lua层数据拷贝到r->buf中
 
     switch (type) {
     case LUA_TSTRING:
     case LUA_TNUMBER:
-        data = (u_char *) lua_tolstring(L, 3, &size);
+        data = (u_char *) lua_tolstring(L, 3, &size);                       // 获取lua层的data
         break;
 
-    case LUA_TNIL:
+    case LUA_TNIL:                                                          // 把ngx层的in->buf 全部消费
         /* discard the buffers */
 
         lua_getglobal(L, ngx_http_lua_chain_key); /* key val */
@@ -563,7 +563,7 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
 
     last = 0;
 
-    for (cl = in; cl; cl = cl->next) {
+    for (cl = in; cl; cl = cl->next) {                                      // 拿到r->buf链 依次消费
         b = cl->buf;
 
         if (b->flush) {
@@ -594,7 +594,7 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,
         cl->buf->last = ngx_http_lua_copy_str_in_table(L, 3, cl->buf->last);
 
     } else {
-        cl->buf->last = ngx_copy(cl->buf->pos, data, size);
+        cl->buf->last = ngx_copy(cl->buf->pos, data, size);                 // 拷贝lua层的buf
     }
 
 done:
@@ -625,7 +625,7 @@ done:
         }
     }
 
-    lua_pushlightuserdata(L, cl);
+    lua_pushlightuserdata(L, cl);                                           // 重置r->buf
     lua_setglobal(L, ngx_http_lua_chain_key);
     return 0;
 }

@@ -697,10 +697,10 @@ ngx_http_lua_socket_tcp_connect(lua_State *L)   // 在lua脚本里触发此函�
 #if 1
         lua_pushlightuserdata(L, &ngx_http_lua_upstream_udata_metatable_key);   // key入栈
         lua_rawget(L, LUA_REGISTRYINDEX);                                       // 根据入栈的key值 取出注册表(注册表是一个特殊的表 用于存储全局变量和C语言级别的数据)中相应的table 放到栈顶
-        lua_setmetatable(L, -2);
+        lua_setmetatable(L, -2);                                                // 把全局表设置为 u的元表
 #endif
 
-        lua_rawseti(L, 1, SOCKET_CTX_INDEX);                                    // KEEP hankai0 为set_keepalive做准备
+        lua_rawseti(L, 1, SOCKET_CTX_INDEX);                                    // KEEP hankai0 将u插入table[1]处 为set_keepalive做准备
     }
 
     ngx_memzero(u, sizeof(ngx_http_lua_socket_tcp_upstream_t));                 // memset(u, 0x0, size)
@@ -4587,7 +4587,7 @@ ngx_http_lua_socket_tcp_getreusedtimes(lua_State *L)
 
 
 static int
-ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)                      // lua_State表示一个独立的lua虚拟机 每个worker均只有一个    // KEEP hankai1 keepalive开始
+ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)                      // lua_State表示一个独立的lua虚拟机 每个worker均只有一个    // KEEP hankai1 事务结束 保存keepalive开始
 {
     ngx_http_lua_loc_conf_t             *llcf;
     ngx_http_lua_socket_tcp_upstream_t  *u;
@@ -4618,17 +4618,17 @@ ngx_http_lua_socket_tcp_setkeepalive(lua_State *L)                      // lua_S
     luaL_checktype(L, 1, LUA_TTABLE);
 
     lua_pushlightuserdata(L, &ngx_http_lua_socket_pool_key);            // 获取当前worker的vm中的 全局注册表中 socket_pool注册表 中的socket_key表
-    lua_rawget(L, LUA_REGISTRYINDEX);
+    lua_rawget(L, LUA_REGISTRYINDEX);                                   // 全局 连接池放入栈顶
 
-    lua_rawgeti(L, 1, SOCKET_KEY_INDEX);
-    key.data = (u_char *) lua_tolstring(L, -1, &key.len);               // "host: ip" 表
+    lua_rawgeti(L, 1, SOCKET_KEY_INDEX);                                // 从栈底的table中拿到 <host: ip> eg: 192.168.78.4:6379
+    key.data = (u_char *) lua_tolstring(L, -1, &key.len);             
     if (key.data == NULL) {
         lua_pushnil(L);
         lua_pushliteral(L, "key not found");
         return 2;
     }
 
-    lua_rawgeti(L, 1, SOCKET_CTX_INDEX);
+    lua_rawgeti(L, 1, SOCKET_CTX_INDEX);                                // 从栈底的table中拿到 u
     u = lua_touserdata(L, -1);
     lua_pop(L, 1);
 
@@ -4887,8 +4887,8 @@ ngx_http_lua_get_keepalive_peer(ngx_http_request_t *r, lua_State *L,
     pc = &u->peer;
 
     lua_pushlightuserdata(L, &ngx_http_lua_socket_pool_key);
-    lua_rawget(L, LUA_REGISTRYINDEX); /* table */
-    lua_pushvalue(L, key_index); /* key */
+    lua_rawget(L, LUA_REGISTRYINDEX); /* table */                               // KEEP hankai 获取全局连接池
+    lua_pushvalue(L, key_index); /* key */                                      // KEEP hankai 查找 <host: ip> 对应的pool?
     lua_rawget(L, -2);
 
     spool = lua_touserdata(L, -1);
