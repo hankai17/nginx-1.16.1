@@ -199,5 +199,15 @@ set print pretty
 #b ngx_ssl_handshake
 
 #reuse_port
-b bind
-b listen
+#b bind
+#b listen
+
+#upstream buffer copy
+b ngx_http_proxy_non_buffered_copy_filter
+b ngx_http_proxy_non_buffered_chunked_filter
+b ngx_http_upstream_non_buffered_filter
+b ngx_http_upstream_process_non_buffered_request
+#b ngx_http_upstream_process_non_buffered_upstream
+#b ngx_output_chain
+b ngx_http_sub_body_filter
+b ngx_http_write_filter

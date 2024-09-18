@@ -316,7 +316,7 @@ ngx_http_lua_body_filter(ngx_http_request_t *r, ngx_chain_t *in)                
     }
 
     /* in != out */
-    rc = ngx_http_next_body_filter(r, out);
+    rc = ngx_http_next_body_filter(r, out);                     // hankai1.5
     if (rc == NGX_ERROR) {
         return NGX_ERROR;
     }
@@ -345,7 +345,7 @@ ngx_http_lua_body_filter_init(void)
 
 
 int
-ngx_http_lua_body_filter_param_get(lua_State *L)                            // hankai1.3 将r->buf中的数据拷贝到lua层
+ngx_http_lua_body_filter_param_get(lua_State *L)                            // hankai1.3 将传参 in 即buffer拷贝到lua层
 {
     u_char              *data, *p;
     size_t               size;
@@ -370,7 +370,7 @@ ngx_http_lua_body_filter_param_get(lua_State *L)                            // h
         /* asking for the eof argument */
 
         for (cl = in; cl; cl = cl->next) {
-            if (cl->buf->last_buf || cl->buf->last_in_chain) {              // eof 的来源是 r->buf中有last标志
+            if (cl->buf->last_buf || cl->buf->last_in_chain) {              // eof 的来源是 in的buffer 中有last标志
                 lua_pushboolean(L, 1);
                 return 1;
             }
@@ -413,7 +413,7 @@ ngx_http_lua_body_filter_param_get(lua_State *L)                            // h
 
     data = (u_char *) lua_newuserdata(L, size);
 
-    for (p = data, cl = in; cl; cl = cl->next) {                            // 拷贝到lua栈上 // 不修改原始r->buf 即不消费
+    for (p = data, cl = in; cl; cl = cl->next) {                            // 拷贝到lua栈上 // 不修改原始 in 即不消费
         b = cl->buf;
         p = ngx_copy(p, b->pos, b->last - b->pos);
 
@@ -427,7 +427,7 @@ ngx_http_lua_body_filter_param_get(lua_State *L)                            // h
 }
 
 
-int                                                                         // hankai1.4 将lua层代码拷贝到r->buf中
+int                                                                         // hankai1.4 将lua层代码拷贝到in中
 ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,     // lua层调用set eg:     ngx.arg[1] = body2    ngx.arg[2] = false
     ngx_http_lua_ctx_t *ctx)
 {
@@ -563,7 +563,7 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,     // l
 
     last = 0;
 
-    for (cl = in; cl; cl = cl->next) {                                      // 拿到r->buf链 依次消费
+    for (cl = in; cl; cl = cl->next) {                                      // 拿到 in 链 依次消费
         b = cl->buf;
 
         if (b->flush) {
@@ -584,7 +584,7 @@ ngx_http_lua_body_filter_param_set(lua_State *L, ngx_http_request_t *r,     // l
         goto done;
     }
 
-    cl = ngx_http_lua_chain_get_free_buf(r->connection->log, r->pool,
+    cl = ngx_http_lua_chain_get_free_buf(r->connection->log, r->pool,       // 分配size大小的buff链
                                          &ctx->free_bufs, size);
     if (cl == NULL) {
         return luaL_error(L, "no memory");
