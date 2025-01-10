@@ -55,8 +55,9 @@ ngx_http_lua_inject_req_body_api(lua_State *L)
     lua_setfield(L, -2, "set_body_file");
 
     lua_pushcfunction(L, ngx_http_lua_ngx_req_init_body);
-    lua_setfield(L, -2, "init_body");                           // 调用init_body指令之前确保lua层已初始化了一个socket (ngx_http_lua_req_socket)
+    lua_setfield(L, -2, "init_body");                           // 调用init_body指令之前确保lua层已初始化了一个socket (ngx_http_lua_req_socket) 参考upload.lua
                                                                 // 然后用这个socket read到数据  数据经过filter后 再通过下面的"append_body" 把处理后的数据放到r->request_body中(可能伴随写文件)
+                                                                // 这个函数主要用于暴力接管底层socket 用于读取数据
 
     lua_pushcfunction(L, ngx_http_lua_ngx_req_append_body);
     lua_setfield(L, -2, "append_body");

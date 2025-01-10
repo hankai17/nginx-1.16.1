@@ -227,7 +227,7 @@ static ngx_http_v2_parse_header_t  ngx_http_v2_parse_headers[] = {
 
 
 void
-ngx_http_v2_init(ngx_event_t *rev) // 
+ngx_http_v2_init(ngx_event_t *rev)                                              // 0 ngx_http_init_connection(c) 中设置rev的handler
 {
     ngx_connection_t          *c;
     ngx_pool_cleanup_t        *cln;
@@ -254,7 +254,7 @@ ngx_http_v2_init(ngx_event_t *rev) //
         }
     }
 
-    h2c = ngx_pcalloc(c->pool, sizeof(ngx_http_v2_connection_t));
+    h2c = ngx_pcalloc(c->pool, sizeof(ngx_http_v2_connection_t));                   // 0.1 分配c
     if (h2c == NULL) {
         ngx_http_close_connection(c);
         return;
@@ -290,19 +290,19 @@ ngx_http_v2_init(ngx_event_t *rev) //
     cln->handler = ngx_http_v2_pool_cleanup;
     cln->data = h2c;
 
-    h2c->streams_index = ngx_pcalloc(c->pool, ngx_http_v2_index_size(h2scf)
+    h2c->streams_index = ngx_pcalloc(c->pool, ngx_http_v2_index_size(h2scf)         // c中最大容纳多少stream槽位
                                               * sizeof(ngx_http_v2_node_t *));
     if (h2c->streams_index == NULL) {
         ngx_http_close_connection(c);
         return;
     }
 
-    if (ngx_http_v2_send_settings(h2c) == NGX_ERROR) {
+    if (ngx_http_v2_send_settings(h2c) == NGX_ERROR) {                              // 0.1.1 构造setting帧 挂到c的out链上(暂未发送)
         ngx_http_close_connection(c);
         return;
     }
 
-    if (ngx_http_v2_send_window_update(h2c, 0, NGX_HTTP_V2_MAX_WINDOW
+    if (ngx_http_v2_send_window_update(h2c, 0, NGX_HTTP_V2_MAX_WINDOW               // 0.1.2 构造win_update帧 挂到c的out链上(暂未发送) 
                                                - NGX_HTTP_V2_DEFAULT_WINDOW)
         == NGX_ERROR)
     {
@@ -319,7 +319,7 @@ ngx_http_v2_init(ngx_event_t *rev) //
 
     c->data = h2c;
 
-    rev->handler = ngx_http_v2_read_handler;
+    rev->handler = ngx_http_v2_read_handler;                                        // 0.2 重置rev回调
     c->write->handler = ngx_http_v2_write_handler;
 
     c->idle = 1;
@@ -329,7 +329,7 @@ ngx_http_v2_init(ngx_event_t *rev) //
 
 
 static void
-ngx_http_v2_read_handler(ngx_event_t *rev) // 0事件可重入
+ngx_http_v2_read_handler(ngx_event_t *rev)                                          // 1事件可重入
 {
     u_char                    *p, *end;
     size_t                     available;
@@ -708,10 +708,10 @@ ngx_http_v2_state_proxy_protocol(ngx_http_v2_connection_t *h2c, u_char *pos,
 
 
 static u_char *
-ngx_http_v2_state_preface(ngx_http_v2_connection_t *h2c, u_char *pos, // STATE0
+ngx_http_v2_state_preface(ngx_http_v2_connection_t *h2c, u_char *pos,                   // STATE0
     u_char *end)
 {
-    static const u_char preface[] = "PRI * HTTP/2.0\r\n";
+    static const u_char preface[] = "PRI * HTTP/2.0\r\n";                               // STATE0.1 校验客户端发送的头
 
     if ((size_t) (end - pos) < sizeof(preface) - 1) {
         return ngx_http_v2_state_save(h2c, pos, end, ngx_http_v2_state_preface);
@@ -725,7 +725,7 @@ ngx_http_v2_state_preface(ngx_http_v2_connection_t *h2c, u_char *pos, // STATE0
         return ngx_http_v2_connection_error(h2c, NGX_HTTP_V2_PROTOCOL_ERROR);
     }
 
-    return ngx_http_v2_state_preface_end(h2c, pos + sizeof(preface) - 1, end);
+    return ngx_http_v2_state_preface_end(h2c, pos + sizeof(preface) - 1, end);          // 校验成功
 }
 
 
@@ -751,12 +751,12 @@ ngx_http_v2_state_preface_end(ngx_http_v2_connection_t *h2c, u_char *pos,
     ngx_log_debug0(NGX_LOG_DEBUG_HTTP, h2c->connection->log, 0,
                    "http2 preface verified");
 
-    return ngx_http_v2_state_head(h2c, pos + sizeof(preface) - 1, end);
+    return ngx_http_v2_state_head(h2c, pos + sizeof(preface) - 1, end);                 // 校验成功
 }
 
 
 static u_char *
-ngx_http_v2_state_head(ngx_http_v2_connection_t *h2c, u_char *pos, u_char *end)
+ngx_http_v2_state_head(ngx_http_v2_connection_t *h2c, u_char *pos, u_char *end)         // STATE0.2 // STATE 状态机的default 也就是说一切皆可指向这个函数
 {
     uint32_t    head;
     ngx_uint_t  type;
@@ -786,12 +786,12 @@ ngx_http_v2_state_head(ngx_http_v2_connection_t *h2c, u_char *pos, u_char *end)
         return ngx_http_v2_state_skip(h2c, pos, end);
     }
 
-    return ngx_http_v2_frame_states[type](h2c, pos, end);
+    return ngx_http_v2_frame_states[type](h2c, pos, end);                               // STATE0.2 不同的type不同的回调
 }
 
 
 static u_char *
-ngx_http_v2_state_data(ngx_http_v2_connection_t *h2c, u_char *pos, u_char *end)
+ngx_http_v2_state_data(ngx_http_v2_connection_t *h2c, u_char *pos, u_char *end)         // STATE0.2.2 eg: DATA帧
 {
     size_t                 size;
     ngx_http_v2_node_t    *node;
@@ -1006,7 +1006,7 @@ ngx_http_v2_state_read_data(ngx_http_v2_connection_t *h2c, u_char *pos,
 
 
 static u_char *
-ngx_http_v2_state_headers(ngx_http_v2_connection_t *h2c, u_char *pos,
+ngx_http_v2_state_headers(ngx_http_v2_connection_t *h2c, u_char *pos,                   // STATE0.2.1 header帧 // 每个stream只进来一次
     u_char *end)
 {
     size_t                   size;
@@ -1092,7 +1092,7 @@ ngx_http_v2_state_headers(ngx_http_v2_connection_t *h2c, u_char *pos,
                    "depends on %ui excl:%ui weight:%ui",
                    h2c->state.sid, depend, excl, weight);
 
-    if (h2c->state.sid % 2 == 0 || h2c->state.sid <= h2c->last_sid) {
+    if (h2c->state.sid % 2 == 0 || h2c->state.sid <= h2c->last_sid) {               // 校验客户端stream id
         ngx_log_error(NGX_LOG_INFO, h2c->connection->log, 0,
                       "client sent HEADERS frame with incorrect identifier "
                       "%ui, the last was %ui", h2c->state.sid, h2c->last_sid);
@@ -1141,7 +1141,7 @@ ngx_http_v2_state_headers(ngx_http_v2_connection_t *h2c, u_char *pos,
         goto rst_stream;
     }
 
-    node = ngx_http_v2_get_node_by_id(h2c, h2c->state.sid, 1);
+    node = ngx_http_v2_get_node_by_id(h2c, h2c->state.sid, 1);                      // 分配node (server端的stream抽象?)
 
     if (node == NULL) {
         return ngx_http_v2_connection_error(h2c, NGX_HTTP_V2_INTERNAL_ERROR);
@@ -1152,12 +1152,12 @@ ngx_http_v2_state_headers(ngx_http_v2_connection_t *h2c, u_char *pos,
         h2c->closed_nodes--;
     }
 
-    stream = ngx_http_v2_create_stream(h2c, 0);
+    stream = ngx_http_v2_create_stream(h2c, 0);                                     // STATE0.2.1.0 创建stream
     if (stream == NULL) {
         return ngx_http_v2_connection_error(h2c, NGX_HTTP_V2_INTERNAL_ERROR);
     }
 
-    h2c->state.stream = stream;
+    h2c->state.stream = stream;                                                     // 状态机指向 当前stream
 
     stream->pool = h2c->state.pool;
     h2c->state.keep_pool = 1;
@@ -1167,7 +1167,7 @@ ngx_http_v2_state_headers(ngx_http_v2_connection_t *h2c, u_char *pos,
     stream->in_closed = h2c->state.flags & NGX_HTTP_V2_END_STREAM_FLAG;
     stream->node = node;
 
-    node->stream = stream;
+    node->stream = stream;                                                          // node记录 stream
 
     if (priority || node->parent == NULL) {
         node->weight = weight;
@@ -1196,7 +1196,7 @@ rst_stream:
 
 
 static u_char *
-ngx_http_v2_state_header_block(ngx_http_v2_connection_t *h2c, u_char *pos,
+ngx_http_v2_state_header_block(ngx_http_v2_connection_t *h2c, u_char *pos,          // STATE0.2.1.1 解析header头
     u_char *end)
 {
     u_char      ch;
@@ -1271,7 +1271,7 @@ ngx_http_v2_state_header_block(ngx_http_v2_connection_t *h2c, u_char *pos,
             return ngx_http_v2_connection_error(h2c, NGX_HTTP_V2_COMP_ERROR);
         }
 
-        return ngx_http_v2_state_process_header(h2c, pos, end);
+        return ngx_http_v2_state_process_header(h2c, pos, end);                     // STATE0.2.1.1 保存header头
     }
 
     if (size_update) {
@@ -1279,7 +1279,7 @@ ngx_http_v2_state_header_block(ngx_http_v2_connection_t *h2c, u_char *pos,
             return ngx_http_v2_connection_error(h2c, NGX_HTTP_V2_COMP_ERROR);
         }
 
-        return ngx_http_v2_state_header_complete(h2c, pos, end);
+        return ngx_http_v2_state_header_complete(h2c, pos, end);                    // STATE0.2.1.2
     }
 
     if (value == 0) {
@@ -1525,7 +1525,7 @@ ngx_http_v2_state_field_skip(ngx_http_v2_connection_t *h2c, u_char *pos,
 
 
 static u_char *
-ngx_http_v2_state_process_header(ngx_http_v2_connection_t *h2c, u_char *pos,
+ngx_http_v2_state_process_header(ngx_http_v2_connection_t *h2c, u_char *pos,            // STATE0.2.1.1
     u_char *end)
 {
     size_t                      len;
@@ -1577,7 +1577,7 @@ ngx_http_v2_state_process_header(ngx_http_v2_connection_t *h2c, u_char *pos,
     h2c->state.header_limit -= len;
 
     if (h2c->state.index) {
-        if (ngx_http_v2_add_header(h2c, header) != NGX_OK) {
+        if (ngx_http_v2_add_header(h2c, header) != NGX_OK) {                            // STATE0.2.1.2 解析到header 并存入
             return ngx_http_v2_connection_error(h2c,
                                                 NGX_HTTP_V2_INTERNAL_ERROR);
         }
@@ -1724,7 +1724,7 @@ ngx_http_v2_state_header_complete(ngx_http_v2_connection_t *h2c, u_char *pos,
         return ngx_http_v2_state_skip_padded(h2c, pos, end);
     }
 
-    return ngx_http_v2_state_complete(h2c, pos, end);
+    return ngx_http_v2_state_complete(h2c, pos, end);                               // 指向默认状态机
 }
 
 
@@ -2385,7 +2385,7 @@ ngx_http_v2_state_continuation(ngx_http_v2_connection_t *h2c, u_char *pos,
 
 
 static u_char *
-ngx_http_v2_state_complete(ngx_http_v2_connection_t *h2c, u_char *pos,
+ngx_http_v2_state_complete(ngx_http_v2_connection_t *h2c, u_char *pos,                  // STATE 状态机的default
     u_char *end)
 {
     ngx_log_debug2(NGX_LOG_DEBUG_HTTP, h2c->connection->log, 0,
@@ -2399,7 +2399,7 @@ ngx_http_v2_state_complete(ngx_http_v2_connection_t *h2c, u_char *pos,
     }
 
     h2c->state.stream = NULL;
-    h2c->state.handler = ngx_http_v2_state_head;
+    h2c->state.handler = ngx_http_v2_state_head;                                        // STATE 状态机的default
 
     return pos;
 }
@@ -3766,7 +3766,8 @@ ngx_http_v2_construct_cookie_header(ngx_http_request_t *r)
 
 
 static void
-ngx_http_v2_run_request(ngx_http_request_t *r)
+ngx_http_v2_run_request(ngx_http_request_t *r)                          // http入口 // 解析完header头(STATE0.2.1)后调用
+                                                                        // 接下来走http状态机 走到最后一个handler(CONTENT)中: ngx_http_proxy_handler->ngx_http_read_client_request_body->ngx_http_v2_read_request_body
 {
     ngx_connection_t  *fc;
 
@@ -3825,7 +3826,7 @@ ngx_http_v2_run_request_handler(ngx_event_t *ev)
 
 
 ngx_int_t
-ngx_http_v2_read_request_body(ngx_http_request_t *r)
+ngx_http_v2_read_request_body(ngx_http_request_t *r)                            // http状态机中触发
 {
     off_t                      len;
     size_t                     size;
@@ -3851,7 +3852,7 @@ ngx_http_v2_read_request_body(ngx_http_request_t *r)
 
     len = r->headers_in.content_length_n;
 
-    if (r->request_body_no_buffering && !stream->in_closed) {
+    if (r->request_body_no_buffering && !stream->in_closed) {                   // tunnel
 
         if (len < 0 || len > (off_t) clcf->client_body_buffer_size) {
             len = clcf->client_body_buffer_size;
@@ -3908,7 +3909,7 @@ ngx_http_v2_read_request_body(ngx_http_request_t *r)
     }
 
     if (buf) {
-        rc = ngx_http_v2_process_request_body(r, buf->pos,
+        rc = ngx_http_v2_process_request_body(r, buf->pos,                          // 处理body
                                               buf->last - buf->pos, 0);
 
         ngx_pfree(r->pool, buf->start);
@@ -4039,7 +4040,7 @@ ngx_http_v2_process_request_body(ngx_http_request_t *r, u_char *pos,
     }
 
     if (buf->sync) {
-        return ngx_http_v2_filter_request_body(r);
+        return ngx_http_v2_filter_request_body(r);                      // 同步处理rb中的body
     }
 
     return NGX_OK;
@@ -4128,7 +4129,7 @@ ngx_http_v2_filter_request_body(ngx_http_request_t *r)
 
 update:
 
-    rc = ngx_http_top_request_body_filter(r, cl);
+    rc = ngx_http_top_request_body_filter(r, cl);                               // 调用body_filter
 
     ngx_chain_update_chains(r->pool, &rb->free, &rb->busy, &cl,
                             (ngx_buf_tag_t) &ngx_http_v2_filter_request_body);

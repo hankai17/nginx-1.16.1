@@ -384,7 +384,7 @@ ngx_http_lua_ngx_exit(lua_State *L)
     ngx_log_debug1(NGX_LOG_DEBUG_HTTP, r->connection->log, 0,
                    "lua exit with code %i", ctx->exit_code);
 
-    if (ctx->context & (NGX_HTTP_LUA_CONTEXT_HEADER_FILTER
+    if (ctx->context & (NGX_HTTP_LUA_CONTEXT_HEADER_FILTER              // header_filter阶段exit 直接返回 不会走下面的yield
                         | NGX_HTTP_LUA_CONTEXT_BALANCER))
     {
         return 0;
