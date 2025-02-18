@@ -3690,7 +3690,9 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r, // 什么�
                                         &u->out_bufs, u->output.tag);
             }
 
-            if (u->busy_bufs == NULL) {
+            // 如果底层发送阻塞 但osvc没有拥塞 那么仍会读取osvc填满u->buffer
+
+            if (u->busy_bufs == NULL) { // 只有当底层发完整个数据后 才会重新读取socket
 
                 if (u->length == 0
                     || (upstream->read->eof && u->length == -1))
