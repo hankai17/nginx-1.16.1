@@ -153,10 +153,10 @@ ngx_chain_add_copy(ngx_pool_t *pool, ngx_chain_t **chain, ngx_chain_t *in)
 }
 
 
-ngx_chain_t *
-ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)
-{
-    ngx_chain_t  *cl;
+ngx_chain_t *                                               
+ngx_chain_get_free_buf(ngx_pool_t *p, ngx_chain_t **free)   // 深拷贝 c->b->raw  从c拷贝到b 但是raw(不拷贝)是公用的
+{                                                           // 浅拷贝            只拷贝c
+    ngx_chain_t  *cl;                                       // 深深拷贝          从c拷贝到raw 全拷贝一份 解耦的更彻底
 
     if (*free) {
         cl = *free;

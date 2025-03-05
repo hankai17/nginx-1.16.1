@@ -90,7 +90,7 @@ ngx_writev_chain(ngx_connection_t *c, ngx_chain_t *in, off_t limit)
 
         c->sent += sent;
 
-        in = ngx_chain_update_sent(in, sent);
+        in = ngx_chain_update_sent(in, sent);       // 修改b中了p/l
 
         if (send - prev_send != sent) {
             wev->ready = 0;

@@ -146,7 +146,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
                 return NGX_ERROR;
             }
 
-            if (ngx_output_chain_as_is(ctx, ctx->in->buf)) {        // 如果该(ctx->in)buffer不需要拷贝 则将其漏过去 重置ctx->in指向下一个buffer
+            if (ngx_output_chain_as_is(ctx, ctx->in->buf)) {        // 如果该(ctx->in)buffer不需要拷贝 则将其漏过去(挂到out链上) 重置ctx->in指向下一个buffer
 
                 /* move the chain link to the output chain */
 
@@ -159,10 +159,11 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
 
                 continue;
             }
+            ////////////////////////////////////////////////////////// buffer需要拷贝  // 深拷贝
             ////////////////////////////////////////////////////    //buffer在文件中
             if (ctx->buf == NULL) {
 
-                rc = ngx_output_chain_align_file_buf(ctx, bsize);
+                rc = ngx_output_chain_align_file_buf(ctx, bsize);   // 分配ctx->buf 用于把文件(ctx->in)中的内容拷贝进来
 
                 if (rc == NGX_ERROR) {
                     return NGX_ERROR;
@@ -191,7 +192,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
             }
 
             rc = ngx_output_chain_copy_buf(ctx); 
-                                                    // 从文件中拷贝数据到ctx->buf中
+                                                    // 从文件中拷贝数据到ctx->buf中 // 拷贝动作 // 深拷贝
                                                     // 将ctx->in的一个chain 拷贝到ctx->b中(里面操作了原始的b使得last==pos 即代表拷贝完毕 底层的buf排空可以接受socket数据了) 
                                                     // 当返回到ngx_http_upstream_process_non_buffered_request:ngx_http_output_filter(r, u->out_bufs);时 update_chains时 会将chain回收 即busy则为空 然后重置u->buf 开始接受新一轮数据
 
@@ -223,7 +224,7 @@ ngx_output_chain(ngx_output_chain_ctx_t *ctx, ngx_chain_t *in)
             *last_out = cl;
             last_out = &cl->next;
             ctx->buf = NULL;
-        }
+        }                                           // 不管以前的buffer存放到哪(内存|文件) 最总效果是 所有内容均在out(buffer|内存)里
 
         if (out == NULL && last != NGX_NONE) {
 

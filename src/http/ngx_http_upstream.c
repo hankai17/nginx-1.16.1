@@ -3683,7 +3683,7 @@ ngx_http_upstream_process_non_buffered_request(ngx_http_request_t *r, // 什么�
 
                 if (rc == NGX_ERROR) {
                     ngx_http_upstream_finalize_request(r, u, NGX_ERROR);
-                    return;
+                   return;
                 }
 
                 ngx_chain_update_chains(r->pool, &u->free_bufs, &u->busy_bufs, // 三剑客: a)深拷贝到out_bufs上并切断与源buf的联系 b)底层消费out_bufs c)上层更新(update) 回收out_bufs 并得到一个缓冲区busy_bufs
