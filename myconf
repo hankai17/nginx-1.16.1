@@ -10,10 +10,11 @@
 --with-debug \
 --with-http_sub_module \
 --with-http_auth_request_module \
+--with-openssl-opt="no-deprecated" \
+--with-cc-opt="-Wno-error=deprecated-declarations -Werror=unused-result" \
 --add-module=./my_conf/http_upstream_persistent \
 --add-module=./my_conf/headers-more-nginx-module-master \
 --add-module=./private_conf/ngx_http_security_stats \
 --add-module=./my_conf/ngx_http_subreq_module \
---add-module=./my_conf/ngx_cache_purge \
 --add-module=./my_conf/ngx_http_send_log_module
 

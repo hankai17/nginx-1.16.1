@@ -123,10 +123,12 @@ static void ngx_http_stats_timer_do(ngx_event_t *stats_ev)
                 ngx_atomic_cmp_set(&head->stat[i].requests, head->stat[i].requests, 0);
                 ngx_atomic_cmp_set(&head->stat[i].req_cps, head->stat[i].req_cps, 0);
                 ngx_atomic_cmp_set(&head->stat[i].bandwidth, head->stat[i].bandwidth, 0);
+                /*
                 WAF_LOG_DEBUG("connections is %ld, requests %ld, bandwidth %ld",
                         head->stat[i].connections, 
                         head->stat[i].last_requests, 
                         head->stat[i].last_bandwidth);
+                */
             }
         }
         sleep_time = 0;
@@ -335,8 +337,7 @@ static int ngx_stats_shm_create(void)
     if (stats_share_fd == -1) {
         return -1;
     }
-    ftruncate(stats_share_fd, NGX_STATS_SHARE_MEMORY_LEN);
-    return 0;
+    return ftruncate(stats_share_fd, NGX_STATS_SHARE_MEMORY_LEN);
 }
 
 int ngx_stats_shm_init(void)
