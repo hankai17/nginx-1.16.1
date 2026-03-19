@@ -483,7 +483,7 @@ l_sinline void moveresults (lua_State *L, StkId res,
 ** info. If function has to close variables, hook must be called after
 ** that.
 */
-void luaD_poscall (lua_State *L, CallInfo *ci, int nres) {
+void luaD_poscall (lua_State *L, CallInfo *ci, int nres) {                      // 场景是 luaV_execute 执行完操作码后 需要调用该函数恢复到上次函数调用环境
   int wanted = ci->nresults;
   if (l_unlikely(L->hookmask && !hastocloseCfunc(wanted)))
     rethook(L, ci, nres);
@@ -618,14 +618,14 @@ CallInfo *luaD_precall (lua_State *L, StkId func, int nresults) {
       precallC(L, func, nresults, fvalue(s2v(func)));
       return NULL;
     case LUA_VLCL: {  /* Lua function */                                            // 准备CallInfo
-      CallInfo *ci;
-      Proto *p = clLvalue(s2v(func))->p;
+      CallInfo *ci;                                                                 // 从lua_Stat的callinfo数组中得到一个新的 callinfo结构体设置他的func base top指针
+      Proto *p = clLvalue(s2v(func))->p;                                            // 从f_parser函数构建的闭包中取出p(里面是 词法解析后得到的字节码)
       int narg = cast_int(L->top.p - func) - 1;  /* number of real arguments */
       int nfixparams = p->numparams;
       int fsize = p->maxstacksize;  /* frame size */
       checkstackGCp(L, fsize, func);
       L->ci = ci = prepCallInfo(L, func, nresults, 0, func + 1 + fsize);
-      ci->u.l.savedpc = p->code;  /* starting point */
+      ci->u.l.savedpc = p->code;  /* starting point */                              // 将这里新建的callinfo结构体的top base指针赋值给lua_Stat中的top base   // lua_State的savedpc指向 字节码处
       for (; narg < nfixparams; narg++)
         setnilvalue(s2v(L->top.p++));  /* complete missing arguments */
       lua_assert(ci->top.p <= L->stack_last.p);
@@ -1021,10 +1021,10 @@ static void f_parser (lua_State *L, void *ud) {
   }
   else {
     checkmode(L, p->mode, "text");
-    cl = luaY_parser(L, p->z, &p->buff, &p->dyd, p->name, c);
+    cl = luaY_parser(L, p->z, &p->buff, &p->dyd, p->name, c);           // 词法分析 得到字节码
   }
   lua_assert(cl->nupvalues == cl->p->sizeupvalues);
-  luaF_initupvals(L, cl);
+  luaF_initupvals(L, cl);                                               // 将字节码 封装到闭包里 并入栈
 }
 
 

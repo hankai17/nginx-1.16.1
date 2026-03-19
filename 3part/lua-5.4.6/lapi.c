@@ -1042,7 +1042,7 @@ static void f_call (lua_State *L, void *ud) {
 
 
 
-LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,		// pcall和xpcall的实现 // 保护模式调用
+LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,		// pcall和xpcall的实现: 将产生的字节码 放入虚拟机中执行 // 保护模式调用
                         lua_KContext ctx, lua_KFunction k) {
   struct CallS c;
   int status;
@@ -1060,7 +1060,7 @@ LUA_API int lua_pcallk (lua_State *L, int nargs, int nresults, int errfunc,		// 
     api_check(L, ttisfunction(s2v(o)), "error handler must be a function");
     func = savestack(L, o);
   }
-  c.func = L->top.p - (nargs+1);  /* function to be called */					// 要被调用的函数
+  c.func = L->top.p - (nargs+1);  /* function to be called */					// 要被调用的函数   // eg: f_parser中构建的操作码闭包
   if (k == NULL || !yieldable(L)) {  /* no continuation or no yieldable? */		// 如果没有k函数 或当前不可yield 则正常调用pcall(主线程不可yield)
     c.nresults = nresults;  /* do a 'conventional' protected call */
     status = luaD_pcall(L, f_call, &c, savestack(L, c.func), func);

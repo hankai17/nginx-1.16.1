@@ -775,7 +775,7 @@ static int skipcomment (FILE *f, int *cp) {
 }
 
 
-LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,
+LUALIB_API int luaL_loadfilex (lua_State *L, const char *filename,              // 用于词法语法分析 获得操作码
                                              const char *mode) {
   LoadF lf;
   int status, readstatus;

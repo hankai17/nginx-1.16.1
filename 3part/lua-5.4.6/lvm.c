@@ -1143,7 +1143,7 @@ void luaV_finishOp (lua_State *L) {
 #define vmbreak		break
 
 
-void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通过列表方式初始化Table数组部分内容 
+void luaV_execute (lua_State *L, CallInfo *ci) {                        // 调用时机是 luaD_precall(即lua_Stat的pc指针指向了 要执行的字节码处)之后 这里要执行这些操作码 // 通过列表方式初始化Table数组部分内容 
                                                                         // Lua虚拟机指令执行流程
   LClosure *cl;
   TValue *k;
@@ -1158,7 +1158,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通�
  returning:  /* trap already set */
   cl = clLvalue(s2v(ci->func.p));
   k = cl->p->k;
-  pc = ci->u.l.savedpc;                                                 // 初始化PC指针
+  pc = ci->u.l.savedpc;                                                 // 初始化PC指针 // 指向要执行的字节码
   if (l_unlikely(trap)) {
     if (pc == cl->p->code) {  /* first instruction (not resuming)? */
       if (cl->p->is_vararg)
@@ -1711,7 +1711,7 @@ void luaV_execute (lua_State *L, CallInfo *ci) {                        // 通�
           goto startfunc;  /* execute the callee */
         else {  /* C function? */
           ci->func.p -= delta;  /* restore 'func' (if vararg) */
-          luaD_poscall(L, ci, n);  /* finish caller */
+          luaD_poscall(L, ci, n);  /* finish caller */                              // 执行操作码结束后 需调用luaD_poscall 恢复到上次函数调用的环境
           updatetrap(ci);  /* 'luaD_poscall' can change hooks */
           goto ret;  /* caller returns after the tail call */
         }

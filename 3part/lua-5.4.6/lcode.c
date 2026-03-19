@@ -379,7 +379,7 @@ static void removelastinstruction (FuncState *fs) {
 ** Emit instruction 'i', checking for array sizes and saving also its
 ** line information. Return 'i' position.
 */
-int luaK_code (FuncState *fs, Instruction i) {
+int luaK_code (FuncState *fs, Instruction i) {                              // 生成指令
   Proto *f = fs->f;
   /* put new instruction in code array */
   luaM_growvector(fs->ls->L, f->code, fs->pc, f->sizecode, Instruction,
