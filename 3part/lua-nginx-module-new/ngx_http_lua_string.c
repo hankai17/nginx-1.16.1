@@ -73,7 +73,7 @@ ngx_http_lua_inject_string_api(lua_State *L)
     lua_pushcfunction(L, ngx_http_lua_ngx_quote_sql_str);
     lua_setfield(L, -2, "quote_sql_str");
 
-    lua_pushcfunction(L, ngx_http_lua_ngx_decode_base64);
+    lua_pushcfunction(L, ngx_http_lua_ngx_decode_base64);           // 注册Lua CFunction: ngx.base64_decode // 跟 ngx_http_lua_ffi_decode_base64 对比一下
     lua_setfield(L, -2, "decode_base64");
 
     lua_pushcfunction(L, ngx_http_lua_ngx_encode_base64);
@@ -717,8 +717,8 @@ ngx_http_lua_ffi_encode_base64(const u_char *src, size_t slen, u_char *dst,
 
 
 int
-ngx_http_lua_ffi_decode_base64(const u_char *src, size_t slen, u_char *dst,
-    size_t *dlen)
+ngx_http_lua_ffi_decode_base64(const u_char *src, size_t slen, u_char *dst,             // luajit ffi实现的解码base64命令 在resty/core/base64.lua中 覆盖了上面的 ngx.decode_base64
+    size_t *dlen)                                                                       //  ffi没有luaVM栈开销 且被luajit做过优化可被jit化 所以优先使用resty/core
 {
     ngx_int_t      rc;
     ngx_str_t      in, out;

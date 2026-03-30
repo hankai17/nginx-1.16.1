@@ -115,7 +115,7 @@ ngx_http_lua_ngx_echo(lua_State *L, unsigned newline)
 
                 break;
 
-            case LUA_TTABLE:
+            case LUA_TTABLE:                                    // say里边 可以传入table 从而offload lua层字符串操作
 
                 size += ngx_http_lua_calc_strlen_in_table(L, i, i,
                                                           0 /* strict */);
